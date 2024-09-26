@@ -1,5 +1,5 @@
 import React, {useState, useEffect} from 'react';
-import { InputLabel, TextField} from '@mui/material';
+import { InputLabel, TextField, Chip} from '@mui/material';
 import Autocomplete,{createFilterOptions} from '@mui/material/Autocomplete';
 import { styled } from '@mui/material/styles';
 
@@ -12,7 +12,7 @@ const CustomLabel = styled(InputLabel)(({ theme }) => ({
 
 const filter = createFilterOptions();
 
-const AddMember = ({inviteMemberData, handleInviteMemberData}) => {
+const AddMember = ({inviteMemberData, handleInviteMemberData, handleDeleteMemberData}) => {
     const [openMenu, setOpenMenu] = useState(false);
     const [inputValue, setInputValue] = useState('');
     const [value, setValue] = useState([]);
@@ -36,6 +36,11 @@ const AddMember = ({inviteMemberData, handleInviteMemberData}) => {
         setValue(newValue)
         setMemberEmailModelVal({isOpen: true, memberName: inputValue});
       };
+
+      const handleInputDelete = (chipToDelete) => {
+        setValue((chips) => chips.filter((chip) => chip !== chipToDelete));
+        handleDeleteMemberData(chipToDelete);
+      }
 
       const submitMemberEmailData = (inviteData) => { 
         handleInviteMemberData(inviteData);
@@ -81,6 +86,16 @@ const AddMember = ({inviteMemberData, handleInviteMemberData}) => {
                 renderInput={(params) => (
                     <TextField {...params} variant='standard' />
                 )}
+                renderTags={(value, getTagProps) =>
+                  value.map((option, index) => (
+                      <Chip
+                        key={option}
+                          label={option}
+                          {...getTagProps({ index })}
+                          onDelete={handleInputDelete(option)}
+                      />
+                  ))
+              }
             />
             <AddMemberEmail 
                 modelData={memberEmailModelVal} 

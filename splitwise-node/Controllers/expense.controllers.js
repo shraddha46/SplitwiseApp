@@ -15,7 +15,7 @@ const getAllExpenses = async (req, res) => {
       {
         $lookup: {
           from: 'User',
-          localField: 'paidBy',
+          localField: 'createdBy',
           foreignField: '_id',
           as: 'userDetail',
         },
@@ -25,7 +25,7 @@ const getAllExpenses = async (req, res) => {
       },
       // {
       //     $unwind: {
-      //       path: '$paidBy',
+      //       path: '$createdBy',
       //       preserveNullAndEmptyArrays: true,
       //     },
       //   },
@@ -35,9 +35,9 @@ const getAllExpenses = async (req, res) => {
           'description': 1,
           'amount': 1,
           'date': 1,
-          'paidBy': 1,
+          'createdBy': 1,
           'createdAt': 1,
-          'paidByUser': '$userDetail.username',
+          'createdByUser': '$userDetail.username',
         },
       },
       {

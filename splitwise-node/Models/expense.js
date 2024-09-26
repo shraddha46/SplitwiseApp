@@ -11,7 +11,7 @@ const expenseSchema = new mongoose.Schema({
         required: true,
         default: 0
     },
-    paidBy: {
+    createdBy: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User',
         required: true

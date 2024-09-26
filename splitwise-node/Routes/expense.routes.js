@@ -39,7 +39,7 @@ const router = express.Router();
  *               amount:
  *                 type: number
  *                 example: 100
- *               paidBy:
+ *               createdBy:
  *                 type: string
  *                 example: userId
  *               date:
@@ -58,7 +58,7 @@ const router = express.Router();
  *                   type: number
  *                 description:
  *                   type: string
- *                 paidBy:
+ *                 createdBy:
  *                   type: string
  *                 date:
  *                   type: string
