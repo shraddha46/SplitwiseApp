@@ -1,0 +1,23 @@
+.custom-textfield .MuiOutlinedInput-root {
+    border-color: grey;
+}
+
+.custom-textfield .MuiOutlinedInput-root:hover fieldset {
+    border-color: #1CC29F;
+    /* Change this to your hover color */
+}
+
+.custom-textfield .MuiOutlinedInput-root.Mui-focused fieldset {
+    border-color: #1CC29F;
+    /* Change this to your focused color */
+}
+
+.custom-textfield .MuiInputLabel-root {
+    color: #000;
+    /* Default label color */
+}
+
+.custom-textfield .MuiInputLabel-root.Mui-focused {
+    color: #1CC29F;
+    /* Label color when focused */
+}
