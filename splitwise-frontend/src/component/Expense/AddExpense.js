@@ -11,7 +11,6 @@ import PeopleIcon from '@mui/icons-material/People';
 import { styled } from '@mui/material/styles';
 import ExpenseNoteImg from '../../Images/expense-note.png';
 import { addExpenseAction } from '../../action/expense';
-import { addTempUsersAction } from '../../action/tempUser';
 
 import AddMember from '../MemberExpense/AddMember';
 import SuccessModal from '../../core/SuccessModal';
@@ -79,6 +78,7 @@ const AddExpense = ({ open, closeExpenseModel }) => {
   const [errors, setErrors] = useState({ description: '', amount: '' });
   const [openSuccessModel, setOpenSuccessModel] = useState(false);
   const [selectedMember, setSelectedMember] = useState("");
+  const [splitAmount, setSplitAmount] = useState(0.00);
 
   const [inviteMemberData, setInviteMemberData] = useState([]);
   const [anchorMemberEl, setAnchorMemberEl] = useState(null);
@@ -92,14 +92,9 @@ const AddExpense = ({ open, closeExpenseModel }) => {
 
   useEffect(() => {
     setExpenseData({ ...expenseData, createdBy: userData.id });
-    setExpenseMembers([...expenseMembers, {userId: userData.id, userName: userData.username, paidBy: 0, owedBy: 0}])
+    setExpenseMembers([...expenseMembers, { userId: userData.id, username: userData.username, paidBy: 0, owedBy: 0 }])
     setSelectedMember(userData.username)
   }, [userData]);
-
-  // useEffect(() => {
-  //   setExpenseData({ description: '', amount: 0.00, createdBy: '', date: new Date() });
-  //   setExpenseMembers([]);
-  // },[open]);
 
   const openMemberList = (event) => {
     setAnchorMemberEl(event.currentTarget);
@@ -110,18 +105,28 @@ const AddExpense = ({ open, closeExpenseModel }) => {
   };
 
   const handleInviteMemberData = (inviteMembers) => {
+    setSplitAmount(expenseData.amount / (expenseMembers.length + 1));
     setInviteMemberData([...inviteMemberData, { ...inviteMembers, inviteBy: userData.id }]);
-    setExpenseMembers([...expenseMembers.map(val => val.userName === selectedMember ? {...val, owedBy: expenseData.amount / (expenseMembers.length + 1)} : val), {userName: inviteMembers.username, paidBy: 0, owedBy: expenseData.amount / (expenseMembers.length + 1) }])
+    setExpenseMembers([...expenseMembers.map(val => ({ ...val, owedBy: expenseData.amount / (expenseMembers.length + 1) })), { username: inviteMembers.username, paidBy: 0, owedBy: expenseData.amount / (expenseMembers.length + 1) }])
   };
 
   const handleAmountChange = (e) => {
+    setSplitAmount(e.target.value / expenseMembers.length);
     setExpenseData({ ...expenseData, amount: parseFloat(e.target.value).toFixed(2) });
-    setExpenseMembers([...expenseMembers.map(val => val.userName === selectedMember ? {...val, paidBy: parseFloat(e.target.value).toFixed(2), owedBy: parseFloat(e.target.value).toFixed(2)/expenseMembers.length } : {...val, paidBy: 0, owedBy: parseFloat(e.target.value).toFixed(2)/expenseMembers.length })]);
+    setExpenseMembers([...expenseMembers.map(val => val.username === selectedMember ? { ...val, paidBy: parseFloat(e.target.value).toFixed(2), owedBy: parseFloat(e.target.value).toFixed(2) / expenseMembers.length } : { ...val, paidBy: 0, owedBy: parseFloat(e.target.value).toFixed(2) / expenseMembers.length })]);
   }
 
   const handleDeleteMemberData = (memberName) => {
-    setInviteMemberData([...inviteMemberData.filter(val => val.userName !== memberName)]);
-    //])
+    setSplitAmount(expenseData.amount / (expenseMembers.length - 1));
+    setInviteMemberData([...inviteMemberData.filter(val => val.username !== memberName)]);
+    setExpenseMembers([...expenseMembers.filter(val => val.username !== memberName).map(member => ({ ...member, owedBy: expenseData.amount / (expenseMembers.length - 1) }))]);
+    setSelectedMember(userData.username);
+  }
+
+  const handleSelectPaidMember = (memberName) => {
+    setSelectedMember(memberName);
+    setExpenseMembers([...expenseMembers.map(member => member.username === memberName ? {...member, paidBy: expenseData.amount} : {...member, paidBy: 0})]);
+    closeMemberList();
   }
 
   const validateExpenseData = () => {
@@ -145,20 +150,14 @@ const AddExpense = ({ open, closeExpenseModel }) => {
   };
 
   const submitExpenseData = async () => {
-    console.log("expense data",expenseData)
-    console.log("temp user", inviteMemberData)
-    console.log("member list",expenseMembers)
-    // try {
-    //   if (validateExpenseData()) {
-    //     await dispatch(addExpenseAction(expenseData));
-    //     if (inviteMemberData.length > 0) {
-    //       await dispatch(addTempUsersAction(inviteMemberData))
-    //     }
-    //     setOpenSuccessModel(true);
-    //   }
-    // } catch (error) {
+    try {
+      if (validateExpenseData()) {
+        await dispatch(addExpenseAction({...expenseData, tempUsers: inviteMemberData, expenseDetail: expenseMembers}));
+        setOpenSuccessModel(true);
+      }
+    } catch (error) {
 
-    // }
+    }
   }
 
   const handleCloseSuccessModel = () => {
@@ -213,8 +212,8 @@ const AddExpense = ({ open, closeExpenseModel }) => {
                     startAdornment={<InputAdornment position="start">$</InputAdornment>}
                     name="amount"
                     id="amount"
-                    defaultValue={expenseData.value}
-                    value={expenseData.amount}
+                    defaultValue={parseFloat(expenseData.amount).toFixed(2)}
+                    value={parseFloat(expenseData.amount).toFixed(2)}
                     onChange={handleAmountChange}
                   />
                   <FormHelperText>{errors.amount}</FormHelperText>
@@ -222,44 +221,43 @@ const AddExpense = ({ open, closeExpenseModel }) => {
               </div>
             </FieldContainer>
             <Typography component="p" style={{ marginTop: '16px' }}>
-              Paid by <CustomChip aria-describedby={paidByListId} label="you" size="small" onClick={openMemberList} /> and split <CustomChip label="equally" size="small" />.
+              Paid by <CustomChip aria-describedby={paidByListId} label={userData.username === selectedMember ? "you" : selectedMember} size="small" onClick={openMemberList} /> and split <CustomChip label="equally" size="small" />.
             </Typography>
             <Popover
-        id={paidByListId}
-        open={openMemberMenu}
-        anchorEl={anchorMemberEl}
-        onClose={closeMemberList}
-        anchorOrigin={{
-          vertical: 'bottom',
-          horizontal: 'center',
-        }}
-        transformOrigin={{
-          vertical: 'top',
-          horizontal: 'center',
-        }}
-      >
-        <List>
-          {console.log("members",userData)}
-          {expenseMembers.map((member,index) => (
-            <ListItem button key={index} sx={{pt:0.8, pb:0.8}} onClick={closeMemberList} secondaryAction={
-selectedMember === member.userName ? <CustomCheckIcon /> : <></>
-            }>
-              <ListItemAvatar sx={{minWidth: '48px'}}>
-                <Avatar sx={{width: '32px', height: '32px', fontSize: '16px', p: 0.2}}>{member.userName[0]}</Avatar>
-              </ListItemAvatar>
-              <ListItemText primary={member.userName} sx={{pr:1.5}} />
-            </ListItem>
-          ))}
-          <ListItem button sx={{pt:0.8, pb:0.8}} onClick={closeMemberList} >
-              <ListItemAvatar sx={{minWidth: '48px'}}>
-                <Avatar sx={{width: '32px', height: '32px', fontSize: '16px', p: 0.2}}><PeopleIcon /></Avatar>
-              </ListItemAvatar>
-              <CustomListText primary={"Mulltiple Members"} sx={{pr:1.5}} />
-            </ListItem>
-        </List>
-      </Popover>
+              id={paidByListId}
+              open={openMemberMenu}
+              anchorEl={anchorMemberEl}
+              onClose={closeMemberList}
+              anchorOrigin={{
+                vertical: 'bottom',
+                horizontal: 'center',
+              }}
+              transformOrigin={{
+                vertical: 'top',
+                horizontal: 'center',
+              }}
+            >
+              <List>
+                {expenseMembers.map((member, index) => (
+                  <ListItem button key={index} sx={{ pt: 0.8, pb: 0.8 }} onClick={() => handleSelectPaidMember(member.username)} secondaryAction={
+                    selectedMember === member.username ? <CustomCheckIcon /> : <></>
+                  }>
+                    <ListItemAvatar sx={{ minWidth: '48px' }}>
+                      <Avatar sx={{ width: '32px', height: '32px', fontSize: '16px', p: 0.2 }}>{member.username[0]}</Avatar>
+                    </ListItemAvatar>
+                    <ListItemText primary={member.username} sx={{ pr: 1.5 }} />
+                  </ListItem>
+                ))}
+                <ListItem button sx={{ pt: 0.8, pb: 0.8 }} onClick={closeMemberList} >
+                  <ListItemAvatar sx={{ minWidth: '48px' }}>
+                    <Avatar sx={{ width: '32px', height: '32px', fontSize: '16px', p: 0.2 }}><PeopleIcon /></Avatar>
+                  </ListItemAvatar>
+                  <CustomListText primary={"Mulltiple Members"} sx={{ pr: 1.5 }} />
+                </ListItem>
+              </List>
+            </Popover>
             <Typography component="p" style={{ marginTop: '8px', fontSize: '14px' }}>
-              ($1000.00/person)
+              {`($${parseFloat(splitAmount).toFixed(2)}/person)`}
             </Typography>
             <LocalizationProvider dateAdapter={AdapterDateFns}>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginTop: '18px' }} >

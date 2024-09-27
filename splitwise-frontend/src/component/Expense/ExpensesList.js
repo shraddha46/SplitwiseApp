@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useDispatch } from 'react-redux';
+import { format } from 'date-fns';
 import { List, ListItem, ListItemAvatar, Avatar, Divider, Box, Typography, Alert } from '@mui/material';
 import { styled } from '@mui/material/styles';
 import { getAllExpensesAction } from '../../action/expense';
@@ -13,6 +14,7 @@ const AmountLabel = styled(Typography)(({ theme }) => ({
 const AllExpenses = () => {
     const dispatch = useDispatch();
     const [allExpensesList, setAllExpensesList] = useState([]);
+    const [paidUser, setPaidUser] = useState([]);
     const [error, setError] = useState(null);
 
     useEffect(() => {
@@ -20,18 +22,28 @@ const AllExpenses = () => {
             try {
                 const allExpensesData = await dispatch(getAllExpensesAction());
                 setAllExpensesList(allExpensesData);
-                setError(null); // Clear any previous errors
+                setError(null);
             } catch (error) {
-                setError("Failed to load expenses. Please try again."); // Set error message
+                setError("Failed to load expenses. Please try again.");
             }
         };
 
         getAllExpensesData();
     }, [dispatch]);
 
+    useEffect(() => {
+        const paidUserList = [];
+        allExpensesList.map((expense) => {
+            var expenseDetail = expense.expenseDetail.filter(detail => detail.paidBy > 0)[0];
+            paidUserList.push(expenseDetail?.userName || expenseDetail?.tempUserName);
+        })
+        setPaidUser(paidUserList);
+    },[allExpensesList]);
+
     return (
         <Box>
-            {error && <Alert severity="error">{error}</Alert>} {/* Display error message if there's an error */}
+            {error && <Alert severity="error">{error}</Alert>}
+            {console.log("paid list",paidUser)}
             <List dense={false}>
                 {allExpensesList.length > 0 ? (
                     allExpensesList.map((expense, index) => (
@@ -40,20 +52,21 @@ const AllExpenses = () => {
                                 <Box sx={{ display: 'flex', flexDirection: 'column' }}>
                                     <AmountLabel variant="body1">₹{expense.amount}</AmountLabel>
                                     <Typography color="text.secondary" sx={{ display: 'flex', alignItems: 'center' }}>
-                                        <Avatar sx={{ width: '28px', height: '28px', fontSize: '16px', fontWeight: 600 }}>a</Avatar>
-                                        <Avatar sx={{ width: '28px', height: '28px', fontSize: '16px', fontWeight: 600, ml: '4px' }}>b</Avatar>
+                                        {
+                                            expense.expenseDetail.map(detail => <Avatar sx={{ width: '28px', height: '28px', fontSize: '16px', fontWeight: 600, ml: 0.5 }}>{detail.userName?.[0] || detail.tempUserName?.[0]}</Avatar> )
+                                        }
                                     </Typography>
                                 </Box>
                             }>
                                 <ListItemAvatar>
                                     <Avatar sx={{ fontSize: '18px', fontWeight: 600, padding: '2px' }}>
-                                        {expense.paidByUser[0]}
+                                        {paidUser[index]?.charAt(0).toUpperCase()}
                                     </Avatar>
                                 </ListItemAvatar>
                                 <Box sx={{ display: 'flex', flexDirection: 'column' }}>
                                     <Typography variant="body1">{expense.description}</Typography>
-                                    <Typography variant="body2" color="text.secondary">{expense?.date ? expense.date : new Date().toLocaleString()}</Typography>
-                                    <Typography variant="body2" color="text.secondary"><b>{expense.paidByUser}</b> paid for</Typography>
+                                    <Typography variant="body2" color="text.secondary">{expense?.date ? format(new Date(expense.date), 'MMMM dd,yyyy h:mm a') : format(new Date(), 'MMMM dd,yyyy h:mm a')}</Typography>
+                                    <Typography variant="body2" color="text.secondary"><b>{paidUser[0]}</b> paid for</Typography>
                                 </Box>
                             </ListItem>
                             <Divider />

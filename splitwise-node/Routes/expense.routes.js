@@ -46,6 +46,32 @@ const router = express.Router();
  *                 type: string
  *                 format: date-time
  *                 example: "2024-09-17T12:00:00Z"
+ *               tempUsers:
+ *                 type: array
+ *                 items:
+ *                   type: object
+ *                   properties:
+ *                     email:
+ *                       type: string
+ *                     username:
+ *                       type: string
+ *                     inviteBy:
+ *                       type: string
+ *                       example: userId
+ *               expanseDetail:
+ *                 type: array
+ *                 items:
+ *                   type: object
+ *                   properties:
+ *                     userId:
+ *                       type: string
+ *                       example: userId
+ *                     username:
+ *                       type: string
+ *                     paidBy:
+ *                       type: number
+ *                     owedBy:
+ *                       type: number
  *     responses:
  *       200:
  *         description: Expense created successfully
@@ -54,6 +80,8 @@ const router = express.Router();
  *             schema:
  *               type: object
  *               properties:
+ *                 id:
+ *                   type: string
  *                 amount:
  *                   type: number
  *                 description:
@@ -63,6 +91,36 @@ const router = express.Router();
  *                 date:
  *                   type: string
  *                   format: date-time
+ *                 tempUsers:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       id:
+ *                         type: string
+ *                       email:
+ *                         type: string
+ *                       username:
+ *                         type: string
+ *                       createdBy:
+ *                         type: string
+ *                         example: userId
+ *                 expenseDetail:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       id:
+ *                         type: string
+ *                       userId:
+ *                         type: string
+ *                       tempUserId:
+ *                         type: string
+ *                         example: userId
+ *                       paidBy:
+ *                         type: number
+ *                       owedBy:
+ *                         type: number
  *       400:
  *         description: Bad request, possibly due to invalid input
  *       500:

@@ -92,7 +92,7 @@ const AddMember = ({inviteMemberData, handleInviteMemberData, handleDeleteMember
                         key={option}
                           label={option}
                           {...getTagProps({ index })}
-                          onDelete={handleInputDelete(option)}
+                          onDelete={() => handleInputDelete(option)}
                       />
                   ))
               }
