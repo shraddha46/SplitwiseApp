@@ -49,7 +49,7 @@ const AllExpenses = () => {
                     allExpensesList.map((expense, index) => (
                         <React.Fragment key={index}>
                             <ListItem sx={{ padding: '12px' }} secondaryAction={
-                                <Box sx={{ display: 'flex', flexDirection: 'column' }}>
+                                <Box sx={{ display: 'flex', flexDirection: 'column', textAlign: 'end' }}>
                                     <AmountLabel variant="body1">₹{expense.amount}</AmountLabel>
                                     <Typography color="text.secondary" sx={{ display: 'flex', alignItems: 'center' }}>
                                         {
