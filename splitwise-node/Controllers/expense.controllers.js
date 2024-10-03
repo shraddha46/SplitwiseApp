@@ -4,9 +4,9 @@ const TempUser = require('../Models/tempUser');
 
 const addExpense = async (req, res) => {
   try {
-    const {description, amount, createdBy, date, tempUsers, expenseDetail} = req.body;
+    const {description, amount, createdBy, splitMethod, date, tempUsers, expenseDetail} = req.body;
     // Create the expense
-    const newExpense = new Expense({description, amount, createdBy, date});
+    const newExpense = new Expense({description, amount, createdBy, splitMethod, date});
     await newExpense.save();
 
     // Save temporary users
@@ -16,7 +16,6 @@ const addExpense = async (req, res) => {
 
     // Save expense details
     const savedExpenseDetail = await ExpenseDetail.insertMany(expenseDetail.map(detail => {
-      console.log("id",detail.userId ? null : savedTempUsers.length > 0 ? savedTempUsers.filter(user => user.username === detail.username)[0]._id : null)
       return ({
       expenseId: newExpense._id,
       userId: detail.userId || null,
@@ -70,6 +69,7 @@ const getAllExpenses = async (req, res) => {
               description: { $first: '$description' },
               amount: { $first: { $toDouble: '$amount' } },
               createdBy: { $first: '$createdBy' },
+              splitMethod: { $first: '$splitMethod' },
               date: { $first: '$date' },
               createdAt: { $first: '$createdAt' },
               expenseDetail: {

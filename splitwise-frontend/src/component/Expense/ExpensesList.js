@@ -3,6 +3,7 @@ import { useDispatch } from 'react-redux';
 import { format } from 'date-fns';
 import { List, ListItem, ListItemAvatar, Avatar, Divider, Box, Typography, Alert } from '@mui/material';
 import { styled } from '@mui/material/styles';
+import PeopleIcon from '@mui/icons-material/People';
 import { getAllExpensesAction } from '../../action/expense';
 
 const AmountLabel = styled(Typography)(({ theme }) => ({
@@ -34,16 +35,15 @@ const AllExpenses = () => {
     useEffect(() => {
         const paidUserList = [];
         allExpensesList.map((expense) => {
-            var expenseDetail = expense.expenseDetail.filter(detail => detail.paidBy > 0)[0];
-            paidUserList.push(expenseDetail?.userName || expenseDetail?.tempUserName);
+            var expenseDetails = expense.expenseDetail.filter(detail => detail.paidBy > 0).map(val => val?.userName || val?.tempUserName);
+            paidUserList.push(expenseDetails);
         })
         setPaidUser(paidUserList);
-    },[allExpensesList]);
+    }, [allExpensesList]);
 
     return (
         <Box>
             {error && <Alert severity="error">{error}</Alert>}
-            {console.log("paid list",paidUser)}
             <List dense={false}>
                 {allExpensesList.length > 0 ? (
                     allExpensesList.map((expense, index) => (
@@ -53,20 +53,20 @@ const AllExpenses = () => {
                                     <AmountLabel variant="body1">₹{expense.amount}</AmountLabel>
                                     <Typography color="text.secondary" sx={{ display: 'flex', alignItems: 'center' }}>
                                         {
-                                            expense.expenseDetail.map(detail => <Avatar sx={{ width: '28px', height: '28px', fontSize: '16px', fontWeight: 600, ml: 0.5 }}>{detail.userName?.[0] || detail.tempUserName?.[0]}</Avatar> )
+                                            expense.expenseDetail.map(detail => <Avatar sx={{ width: '28px', height: '28px', fontSize: '16px', fontWeight: 600, ml: 0.5 }}>{detail.userName?.[0] || detail.tempUserName?.[0]}</Avatar>)
                                         }
                                     </Typography>
                                 </Box>
                             }>
                                 <ListItemAvatar>
                                     <Avatar sx={{ fontSize: '18px', fontWeight: 600, padding: '2px' }}>
-                                        {paidUser[index]?.charAt(0).toUpperCase()}
+                                        {paidUser[index]?.length > 1 ? <PeopleIcon /> : paidUser[index]?.length === 1 && paidUser[index][0] ? paidUser[index][0].charAt(0).toUpperCase() : <PeopleIcon />}
                                     </Avatar>
                                 </ListItemAvatar>
                                 <Box sx={{ display: 'flex', flexDirection: 'column' }}>
                                     <Typography variant="body1">{expense.description}</Typography>
                                     <Typography variant="body2" color="text.secondary">{expense?.date ? format(new Date(expense.date), 'MMMM dd,yyyy h:mm a') : format(new Date(), 'MMMM dd,yyyy h:mm a')}</Typography>
-                                    <Typography variant="body2" color="text.secondary"><b>{paidUser[0]}</b> paid for</Typography>
+                                    <Typography variant="body2" color="text.secondary">{paidUser[index]?.length > 1 ? <b>{`${paidUser[index].length} members `}</b> : paidUser[index]?.length === 1 && paidUser[index][0] ? <b>{`${paidUser[index][0]} `}</b> : <b>more members </b>}paid for</Typography>
                                 </Box>
                             </ListItem>
                             <Divider />

@@ -42,6 +42,9 @@ const router = express.Router();
  *               createdBy:
  *                 type: string
  *                 example: userId
+ *               splitMethod:
+ *                 type: string
+ *                 example: simple_split
  *               date:
  *                 type: string
  *                 format: date-time
@@ -87,6 +90,8 @@ const router = express.Router();
  *                 description:
  *                   type: string
  *                 createdBy:
+ *                   type: string
+ *                 splitMethod:
  *                   type: string
  *                 date:
  *                   type: string
