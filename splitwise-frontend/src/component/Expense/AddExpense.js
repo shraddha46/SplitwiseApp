@@ -114,24 +114,61 @@ const AddExpense = ({ open, closeExpenseModel }) => {
   const closeMemberList = () => setAnchorMemberEl(null);
 
   const closeSplitList = () => setAnchorSplitEl(null);
-
   const handleInviteMemberData = (inviteMembers) => {
-    setSplitAmount(expenseData.amount / (expenseMembers.length + 1));
+    const totalMembers = expenseMembers.length + 1;
+    const baseShare = parseFloat((expenseData.amount / totalMembers).toFixed(2));
+    const decimalShare = Math.floor((expenseData.amount / totalMembers) * 100) / 100;
+    const totalDistributedDecimal = decimalShare * totalMembers;
+    const remainingAmount = (expenseData.amount - totalDistributedDecimal).toFixed(2);
+    const countDecimalMember = Math.round(remainingAmount / 0.01);
+
+    setSplitAmount(baseShare);
     setInviteMemberData(prev => [...prev, { ...inviteMembers, inviteBy: userData.id }]);
-    setExpenseMembers(prev => [...prev.map(val => ({ ...val, owedBy: parseFloat(expenseData.amount).toFixed(2) / (expenseMembers.length + 1) })), { username: inviteMembers.username, paidBy: 0, owedBy: parseFloat(expenseData.amount).toFixed(2) / (expenseMembers.length + 1) }])
+
+    setExpenseMembers(prev => {
+      const updatedShares = prev.map((member, index) => {
+        let owedBy = decimalShare;
+        if (index < countDecimalMember) {
+          owedBy = baseShare;
+        }
+        return { ...member, owedBy };
+      });
+
+      updatedShares.push({
+        username: inviteMembers.username,
+        paidBy: 0,
+        owedBy: countDecimalMember === 1 ? parseFloat((baseShare + 0.01).toFixed(2)) : decimalShare
+      });
+
+      return updatedShares;
+    });
   };
 
-  const handleAmountChange = (e) => {
-    setSplitAmount(e.target.value / expenseMembers.length);
-    setExpenseData(prev => ({ ...prev, amount: parseFloat(e.target.value).toFixed(2) }));
-    setExpenseMembers(prev => prev.map(val => val.username === selectedMember ? { ...val, paidBy: parseFloat(e.target.value).toFixed(2), owedBy: parseFloat(e.target.value).toFixed(2) / expenseMembers.length } : { ...val, paidBy: 0, owedBy: parseFloat(e.target.value).toFixed(2) / expenseMembers.length }));
+  const handleDeleteMemberData = (memberName) => {
+    const totalMembers = expenseMembers.length - 1;
+    const baseShare = parseFloat((expenseData.amount / totalMembers).toFixed(2));
+    const decimalShare = Math.floor((expenseData.amount / totalMembers) * 100) / 100;
+    const totalDistributedDecimal = decimalShare * totalMembers;
+    const remainingAmount = (expenseData.amount - totalDistributedDecimal).toFixed(2);
+    const countDecimalMember = Math.round(remainingAmount / 0.01);
+
+    setSplitAmount(baseShare);
+    setInviteMemberData(prev => prev.filter(val => val.username !== memberName));
+    setExpenseMembers(prev => prev.filter(val => val.username !== memberName).map((member, index) => {
+      let owedBy = decimalShare;
+      if (index < countDecimalMember) {
+        owedBy = baseShare;
+      }
+      return { ...member, owedBy: (countDecimalMember === 1 && prev.length - 2 === index) ? parseFloat((baseShare + 0.01).toFixed(2)) : owedBy };
+    }));
+    setSelectedMember(userData.username);
   }
 
-  const handleDeleteMemberData = (memberName) => {
-    setSplitAmount(expenseData.amount / (expenseMembers.length - 1));
-    setInviteMemberData(prev => prev.filter(val => val.username !== memberName));
-    setExpenseMembers(prev => prev.filter(val => val.username !== memberName).map(member => ({ ...member, owedBy: expenseData.amount / (expenseMembers.length - 1) })));
-    setSelectedMember(userData.username);
+  const handleAmountChange = (e) => {
+    const amt = parseFloat(e.target.value);
+    setSplitAmount(amt / expenseMembers.length);
+    setExpenseData(prev => ({ ...prev, amount: amt }));
+    setExpenseMembers(prev => prev.map(val => val.username === selectedMember ? { ...val, paidBy: amt, owedBy: amt / expenseMembers.length } : { ...val, paidBy: 0, owedBy: amt / expenseMembers.length }));
   }
 
   const handleSelectPaidMember = (memberName) => {
@@ -168,12 +205,14 @@ const AddExpense = ({ open, closeExpenseModel }) => {
 
   const submitExpenseData = async () => {
     const totalPaid = expenseMembers.reduce((sum, item) => sum + parseFloat(item.paidBy), 0);
-    const totalOwed = expenseMembers.reduce((sum, item) => sum + parseFloat(item.owedBy), 0);
-    if (totalPaid < expenseData.amount) {
-      setPaidAmountError(`total paid amount ($${parseFloat(totalPaid).toFixed(2)}) is different than the total amount ($${expenseData.amount})`);
-    } else if (totalOwed < parseFloat(expenseData.amount).toFixed(2)) {
-      setOwedAmountError(`total of everyone's owed shares ($${parseFloat(totalOwed).toFixed(2)}) is different than the total cost ($${expenseData.amount})`);
-    } else {
+    const totalOwed = expenseMembers.reduce((sum, item) => sum + item.owedBy, 0);
+    if (totalPaid !== expenseData.amount) {
+      setPaidAmountError(`total paid amount ($${totalPaid}) is different than the total amount ($${expenseData.amount})`);
+    }
+    else if (totalOwed !== expenseData.amount) {
+      setOwedAmountError(`total of everyone's owed shares ($${totalOwed}) is different than the total cost ($${expenseData.amount})`);
+    }
+    else {
       setPaidAmountError('');
       setOwedAmountError('');
       if (validateExpenseData()) {
@@ -199,29 +238,33 @@ const AddExpense = ({ open, closeExpenseModel }) => {
   }
 
   const handlePaidAmount = (e, member) => {
+    const value = parseFloat(e.target.value);
     if (e.target.value === '' || e.target.value < 0) {
       return;
     }
-    const totalPaid = expenseMembers.reduce((sum, item) => member.username !== item.username ? sum + parseFloat(item.paidBy).toFixed(2) : 0, 0);
-    if ((totalPaid + parseFloat(e.target.value)) > expenseData.amount) {
-      setPaidAmountError(`total paid amount ($${(totalPaid + parseFloat(e.target.value))}) is different than the total amount ($${expenseData.amount})`)
-    } else {
-      setPaidAmountError("");
-      setExpenseMembers(prev => prev.map(val => val.username === member.username ? { ...val, paidBy: parseFloat(e.target.value).toFixed(2) } : val));
-    }
+    // const totalPaid = expenseMembers.reduce((sum, item) => member.username !== item.username ? sum + item.paidBy : 0, 0);
+    // if ((totalPaid + parseFloat(e.target.value)) !== expenseData.amount) {
+    //   setPaidAmountError(`total paid amount ($${(totalPaid + parseFloat(e.target.value))}) is different than the total amount ($${expenseData.amount})`)
+    // } else {
+    //   setPaidAmountError("");
+    // }
+    setPaidAmountError("");
+    setExpenseMembers(prev => prev.map(val => val.username === member.username ? { ...val, paidBy: value } : val));
   }
 
   const handleSplitAmount = (e, member) => {
+    const value = parseFloat(e.target.value);
     if (e.target.value === '' || e.target.value < 0) {
       return;
     }
-    const totalOwed = expenseMembers.reduce((sum, item) => member.username !== item.username ? sum + item.owedBy : 0, 0);
-    if (totalOwed + parseFloat(e.target.value) > expenseData.amount) {
-      setOwedAmountError(`total of everyone's owed shares ($${totalOwed + parseFloat(e.target.value)}) is different than the total cost ($${expenseData.amount})`);
-    } else {
-      setOwedAmountError("");
-      setExpenseMembers(prev => prev.map(val => val.username === member.username ? { ...val, owedBy: parseFloat(e.target.value).toFixed(2) } : val));
-    }
+    // const totalOwed = expenseMembers.reduce((sum, item) => member.username !== item.username ? sum + item.owedBy : 0, 0);
+    // if ((totalOwed + e.target.value) > expenseData.amount) {
+    //   setOwedAmountError(`total of everyone's owed shares ($${totalOwed + e.target.value}) is different than the total cost ($${expenseData.amount})`);
+    // } else {
+    //   setOwedAmountError("");
+    // }
+    setOwedAmountError("");
+    setExpenseMembers(prev => prev.map(val => val.username === member.username ? { ...val, owedBy: value } : val));
   }
 
   return (
@@ -275,8 +318,8 @@ const AddExpense = ({ open, closeExpenseModel }) => {
                       startAdornment={<InputAdornment position="start">$</InputAdornment>}
                       name="amount"
                       id="amount"
-                      defaultValue={parseFloat(expenseData.amount).toFixed(2)}
-                      value={parseFloat(expenseData.amount).toFixed(2)}
+                      defaultValue={expenseData.amount}
+                      value={expenseData.amount}
                       onChange={handleAmountChange}
                     />
                     <FormHelperText>{errors.amount}</FormHelperText>
@@ -346,7 +389,7 @@ const AddExpense = ({ open, closeExpenseModel }) => {
                 </List>
               </Popover>
               <Typography component="p" style={{ marginTop: '8px', fontSize: '14px' }}>
-                {`($${parseFloat(splitAmount).toFixed(2)}/person)`}
+                {`($${splitAmount}/person)`}
               </Typography>
               <LocalizationProvider dateAdapter={AdapterDateFns}>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginTop: '18px' }} >
@@ -393,7 +436,7 @@ const AddExpense = ({ open, closeExpenseModel }) => {
                     id="paidAmount"
                     defaultValue={0}
                     value={member.paidBy}
-                    sx={{ width: `${Math.max(50, (member.paidBy.length || 1) * 20)}px` }}
+                    sx={{ width: `${Math.max(70, (member.paidBy.length || 1) * 30)}px` }}
                     inputProps={{
                       style: { transition: 'width 0.2s' },
                       min: 0,
@@ -404,6 +447,8 @@ const AddExpense = ({ open, closeExpenseModel }) => {
                 </ListItem>)}
             </List>
           </Box>}
+          {(selectedMember === "multiple members" && splitMethod !== "simple_split") && <Divider orientation="vertical" flexItem sx={{ borderWidth: '0px', margin: '20px 25px' }} />}
+
           {splitMethod !== "simple_split" && <Box style={{ margin: '0' }}>
             {
               owedAmountError !== "" && <Alert severity="error" sx={{ mt: 1 }}>{owedAmountError}</Alert>
