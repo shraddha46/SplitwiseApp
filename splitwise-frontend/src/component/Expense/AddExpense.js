@@ -436,7 +436,7 @@ const AddExpense = ({ open, closeExpenseModel }) => {
                     id="paidAmount"
                     defaultValue={0}
                     value={member.paidBy}
-                    sx={{ width: `${Math.max(70, (member.paidBy.length || 1) * 30)}px` }}
+                    sx={{ width: `${Math.max(70, (member.paidBy.toString().length || 1) * 15)}px` }}
                     inputProps={{
                       style: { transition: 'width 0.2s' },
                       min: 0,
@@ -471,7 +471,7 @@ const AddExpense = ({ open, closeExpenseModel }) => {
                     id="splitAmount"
                     defaultValue={0}
                     value={member.owedBy}
-                    sx={{ width: `${Math.max(60, (member.owedBy.length || 1) * 20)}px` }}
+                    sx={{ width: `${Math.max(70, (member.owedBy.toString().length || 1) * 15)}px` }}
                     inputProps={{
                       style: { transition: 'width 0.2s' },
                       min: 0,
