@@ -1,109 +1,111 @@
-import React, {useState, useEffect} from 'react';
-import { InputLabel, TextField, Chip} from '@mui/material';
-import Autocomplete,{createFilterOptions} from '@mui/material/Autocomplete';
+import React, { useState, useEffect } from 'react';
+import { InputLabel, TextField, Chip } from '@mui/material';
+import Autocomplete, { createFilterOptions } from '@mui/material/Autocomplete';
 import { styled } from '@mui/material/styles';
-
 import AddMemberEmail from './AddMemberEmail';
 
 const CustomLabel = styled(InputLabel)(({ theme }) => ({
-    whiteSpace: 'nowrap',
-    flexShrink: 0,
+  whiteSpace: 'nowrap',
+  flexShrink: 0,
 }));
 
 const filter = createFilterOptions();
 
-const AddMember = ({inviteMemberData, handleInviteMemberData, handleDeleteMemberData}) => {
-    const [openMenu, setOpenMenu] = useState(false);
-    const [inputValue, setInputValue] = useState('');
-    const [value, setValue] = useState([]);
-    const [options] = useState([]);
+const AddMember = ({ inviteMemberData, handleInviteMemberData, handleDeleteMemberData }) => {
+  const [openMenu, setOpenMenu] = useState(false);
+  const [inputValue, setInputValue] = useState('');
+  const [value, setValue] = useState([]);
+  const [options] = useState([]);
+  const [memberEmailModelVal, setMemberEmailModelVal] = useState({ isOpen: false, memberName: "" });
 
-    const [memberEmailModelVal, setMemberEmailModelVal] = useState({isOpen: false, memberName: ""});
+  useEffect(() => {
+    setOpenMenu(!!inputValue);
+  }, [inputValue]);
 
-    useEffect(() => {
-        if (inputValue) {
-          setOpenMenu(true);
-        } else {
-          setOpenMenu(false);
+  const handleInputMemberChange = (event, newInputValue) => {
+    setInputValue(newInputValue);
+  };
+
+  const handleMemberChange = (event, newValue) => {
+    const lastItem = newValue[newValue.length - 1];
+
+    if (lastItem && lastItem.inputValue) {
+      const newMember = lastItem.inputValue;
+      setValue((prev) => [...prev, newMember]);
+      setInputValue('');
+    } else {
+      setValue(newValue);
+    }
+    setMemberEmailModelVal({ isOpen: true, memberName: typeof lastItem === 'string' ? lastItem : lastItem.inputValue });
+  };
+
+  const handleInputDelete = (chipToDelete) => {
+    setValue((chips) => chips.filter((chip) => chip !== chipToDelete));
+    handleDeleteMemberData(chipToDelete);
+  };
+
+  const submitMemberEmailData = (inviteData) => {
+    handleInviteMemberData(inviteData);
+    setMemberEmailModelVal({ isOpen: false, memberName: '' });
+  };
+
+  const cancelMemberEmailModel = () => {
+    setMemberEmailModelVal({ isOpen: false, memberName: '' });
+  };
+
+  return (
+    <>
+      <CustomLabel htmlFor="text-field">With <b>you</b> and :</CustomLabel>
+      <Autocomplete
+        multiple
+        fullWidth
+        value={value}
+        onInputChange={handleInputMemberChange}
+        onChange={handleMemberChange}
+        open={openMenu}
+        onOpen={() => setOpenMenu(true)}
+        onClose={() => setOpenMenu(false)}
+        options={options}
+        getOptionLabel={(option) => (typeof option === 'string' ? option : option.title)}
+        filterOptions={(options, params) => {
+          const filtered = filter(options, params);
+          const { inputValue } = params;
+          const isExisting = options.some(option => inputValue === option.title);
+          if (inputValue !== '' && !isExisting) {
+            filtered.push({
+              inputValue,
+              title: `Add "${inputValue}"`,
+            });
+          }
+          return filtered;
+        }}
+        renderOption={(props, option) => (
+          <li {...props} key={typeof option === 'string' ? option : option.inputValue}>
+            {typeof option === 'string' ? option : option.title}
+          </li>
+        )}
+        freeSolo
+        renderInput={(params) => (
+          <TextField {...params} variant='standard' />
+        )}
+        renderTags={(value, getTagProps) =>
+          value.map((option, index) => (
+            <Chip
+              key={index}
+              label={option}
+              {...getTagProps({ index })}
+              onDelete={() => handleInputDelete(option)}
+            />
+          ))
         }
-      }, [inputValue]);
-    
-      const handleInputMemberChange = (event, newInputValue) => {
-        setInputValue(newInputValue);
-      };
-    
-      const handleMemberChange = (event, newValue) => {
-        setValue(newValue)
-        setMemberEmailModelVal({isOpen: true, memberName: inputValue});
-      };
-
-      const handleInputDelete = (chipToDelete) => {
-        setValue((chips) => chips.filter((chip) => chip !== chipToDelete));
-        handleDeleteMemberData(chipToDelete);
-      }
-
-      const submitMemberEmailData = (inviteData) => { 
-        handleInviteMemberData(inviteData);
-        setMemberEmailModelVal({isOpen: false, memberName: ''});
-      }
-
-      const cancelMemberEmailModel = () => {
-        setMemberEmailModelVal({isOpen: false, memberName: ''});
-        value.pop();
-      }
-    return (
-        <>
-            <CustomLabel htmlFor="text-field">With <b>you</b> and :</CustomLabel>
-            <Autocomplete
-                multiple
-                fullWidth
-                value={value}
-                onInputChange={handleInputMemberChange}
-                onChange={handleMemberChange}
-                open={openMenu}
-                onOpen={() => setOpenMenu(true)}
-                onClose={() => setOpenMenu(false)}
-                options={options}
-                getOptionLabel={(option) => typeof option === 'string' ? option : option.title}
-                filterOptions={(options, params) => {
-                    const filtered = filter(options, params);
-                    const { inputValue } = params;
-                    const isExisting = options.some(option => inputValue === option.title);
-                    if (inputValue !== '' && !isExisting) {
-                        filtered.push({
-                            inputValue,
-                            title: `Add "${inputValue}"`,
-                        });
-                    }
-                    return filtered;
-                }}
-                renderOption={(props, option) => (
-                    <li {...props} key={option.title}>
-                        {option.title}
-                    </li>
-                )}
-                freeSolo
-                renderInput={(params) => (
-                    <TextField {...params} variant='standard' />
-                )}
-                renderTags={(value, getTagProps) =>
-                  value.map((option, index) => (
-                      <Chip
-                        key={option}
-                          label={option}
-                          {...getTagProps({ index })}
-                          onDelete={handleInputDelete(option)}
-                      />
-                  ))
-              }
-            />
-            <AddMemberEmail 
-                modelData={memberEmailModelVal} 
-                submitMemberEmailData={submitMemberEmailData}
-                cancelMemberEmailModel={cancelMemberEmailModel}
-            />
-        </>
-    )
-}
+      />
+      <AddMemberEmail
+        modelData={memberEmailModelVal}
+        submitMemberEmailData={submitMemberEmailData}
+        cancelMemberEmailModel={cancelMemberEmailModel}
+      />
+    </>
+  );
+};
 
 export default AddMember;

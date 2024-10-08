@@ -16,6 +16,10 @@ const expenseSchema = new mongoose.Schema({
         ref: 'User',
         required: true
     },
+    splitMethod: {
+        type: String,
+        required: true,
+    },
     date: {
         type: Date,
         default: Date.now()
