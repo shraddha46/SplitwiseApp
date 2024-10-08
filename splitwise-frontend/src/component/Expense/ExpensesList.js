@@ -33,10 +33,8 @@ const AllExpenses = () => {
     }, [dispatch]);
 
     useEffect(() => {
-        const paidUserList = [];
-        allExpensesList.map((expense) => {
-            var expenseDetails = expense.expenseDetail.filter(detail => detail.paidBy > 0).map(val => val?.userName || val?.tempUserName);
-            paidUserList.push(expenseDetails);
+        const paidUserList =  allExpensesList.map((expense) => {
+            return expense.expenseDetail.filter(detail => detail.paidBy > 0).map(val => val?.userName || val?.tempUserName);
         })
         setPaidUser(paidUserList);
     }, [allExpensesList]);

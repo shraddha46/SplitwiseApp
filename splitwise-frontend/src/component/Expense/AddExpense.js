@@ -87,6 +87,7 @@ const AddExpense = ({ open, closeExpenseModel }) => {
   const [selectedMember, setSelectedMember] = useState("");
   const [splitMethod, setSplitMethod] = useState("");
   const [splitAmount, setSplitAmount] = useState(0.00);
+  const [splitPer, setSplitPer] = useState([]);
 
   const [inviteMemberData, setInviteMemberData] = useState([]);
   const [anchorMemberEl, setAnchorMemberEl] = useState(null);
@@ -105,6 +106,7 @@ const AddExpense = ({ open, closeExpenseModel }) => {
   useEffect(() => {
     setExpenseData(prev => ({ ...prev, createdBy: userData.id, splitMethod: splitTypes[0].value }));
     setExpenseMembers(prev => [...prev, { userId: userData.id, username: userData.username, paidBy: 0, owedBy: 0 }])
+    setSplitPer(prev => [...prev, { username: userData.username, per: 100.00 }]);
     setSelectedMember(userData.username);
     setSplitMethod(splitTypes[0].value);
   }, [userData]);
@@ -122,7 +124,6 @@ const AddExpense = ({ open, closeExpenseModel }) => {
     const remainingAmount = (expenseData.amount - totalDistributedDecimal).toFixed(2);
     const countDecimalMember = Math.round(remainingAmount / 0.01);
 
-    setSplitAmount(baseShare);
     setInviteMemberData(prev => [...prev, { ...inviteMembers, inviteBy: userData.id }]);
 
     setExpenseMembers(prev => {
@@ -142,6 +143,16 @@ const AddExpense = ({ open, closeExpenseModel }) => {
 
       return updatedShares;
     });
+    setSplitPer(prev => {
+      const splitPerData = prev.map(val => {
+        return { ...val, per: (100 / totalMembers).toFixed(2) };
+      });
+      splitPerData.push({
+        username: inviteMembers.username,
+        per: (100 / totalMembers).toFixed(2)
+      });
+      return splitPerData;
+    });
   };
 
   const handleDeleteMemberData = (memberName) => {
@@ -152,7 +163,6 @@ const AddExpense = ({ open, closeExpenseModel }) => {
     const remainingAmount = (expenseData.amount - totalDistributedDecimal).toFixed(2);
     const countDecimalMember = Math.round(remainingAmount / 0.01);
 
-    setSplitAmount(baseShare);
     setInviteMemberData(prev => prev.filter(val => val.username !== memberName));
     setExpenseMembers(prev => prev.filter(val => val.username !== memberName).map((member, index) => {
       let owedBy = decimalShare;
@@ -162,6 +172,9 @@ const AddExpense = ({ open, closeExpenseModel }) => {
       return { ...member, owedBy: (countDecimalMember === 1 && prev.length - 2 === index) ? parseFloat((baseShare + 0.01).toFixed(2)) : owedBy };
     }));
     setSelectedMember(userData.username);
+    setSplitPer(prev => prev.filter(val => val.username !== memberName).map(member => {
+      return { ...member, per: (100 / totalMembers).toFixed(2) };
+    }));
   }
 
   const handleAmountChange = (e) => {
@@ -265,6 +278,13 @@ const AddExpense = ({ open, closeExpenseModel }) => {
     // }
     setOwedAmountError("");
     setExpenseMembers(prev => prev.map(val => val.username === member.username ? { ...val, owedBy: value } : val));
+  }
+
+  const handleSplitPer = (e, member) => {
+    const value = e.target.value;
+    setOwedAmountError("");
+    setSplitPer(prev => [...prev.map(val => val.username === member.username ? { ...val, per: value } : val)]);
+    setExpenseMembers(prev => prev.map(val => val.username === member.username ? { ...val, owedBy: (value * expenseData.amount) / 100 } : val));
   }
 
   return (
@@ -457,30 +477,62 @@ const AddExpense = ({ open, closeExpenseModel }) => {
               <InputLabel htmlFor="text-field" sx={{ paddingTop: '6px' }}>For whom :</InputLabel>
               <CustomLabel htmlFor="text-field" sx={{ paddingTop: '6px', fontSize: '12px' }}>{splitTypes.find(split => split.value === splitMethod)?.title}</CustomLabel>
             </FieldContainer>
-            <List sx={{ p: 0 }}>
-              {(expenseMembers && expenseMembers.length > 0) && expenseMembers.map((member, index) =>
-                <ListItem button key={index} sx={{ pl: 0, pr: 0 }}>
-                  <ListItemAvatar sx={{ minWidth: '45px' }}>
-                    <Avatar sx={{ width: '32px', height: '32px', fontSize: '16px', p: 0.2 }}>{member?.username?.[0] || "s"}</Avatar>
-                  </ListItemAvatar>
-                  <ListItemText primary={member.username} sx={{ pr: 1.5, minWidth: '110px' }} />
-                  <Input
-                    type="number"
-                    startAdornment={<InputAdornment position="start">$</InputAdornment>}
-                    name="splitAmount"
-                    id="splitAmount"
-                    defaultValue={0}
-                    value={member.owedBy}
-                    sx={{ width: `${Math.max(70, (member.owedBy.toString().length || 1) * 15)}px` }}
-                    inputProps={{
-                      style: { transition: 'width 0.2s' },
-                      min: 0,
-                      step: 1,
-                    }}
-                    onChange={(e) => handleSplitAmount(e, member)}
-                  />
-                </ListItem>)}
-            </List>
+            {
+              splitMethod === "split_by_amounts" && <List sx={{ p: 0 }}>
+                {(expenseMembers && expenseMembers.length > 0) && expenseMembers.map((member, index) =>
+                  <ListItem button key={index} sx={{ pl: 0, pr: 0 }}>
+                    <ListItemAvatar sx={{ minWidth: '45px' }}>
+                      <Avatar sx={{ width: '32px', height: '32px', fontSize: '16px', p: 0.2 }}>{member?.username?.[0] || "s"}</Avatar>
+                    </ListItemAvatar>
+                    <ListItemText primary={member.username} sx={{ pr: 1.5, minWidth: '110px' }} />
+                    <Input
+                      type="number"
+                      startAdornment={<InputAdornment position="start">$</InputAdornment>}
+                      name="splitAmount"
+                      id="splitAmount"
+                      defaultValue={0}
+                      value={member.owedBy}
+                      sx={{ width: `${Math.max(70, (member.owedBy.toString().length || 1) * 15)}px` }}
+                      inputProps={{
+                        style: { transition: 'width 0.2s' },
+                        min: 0,
+                        step: 1,
+                      }}
+                      onChange={(e) => handleSplitAmount(e, member)}
+                    />
+                  </ListItem>)}
+              </List>
+            }
+            {
+              splitMethod === "split_by_per" && <List sx={{ p: 0 }}>
+                {(expenseMembers && expenseMembers.length > 0) && expenseMembers.map((member, index) =>
+                  <ListItem button key={index} sx={{ pl: 0, pr: 0 }}>
+                    <ListItemAvatar sx={{ minWidth: '45px' }}>
+                      <Avatar sx={{ width: '32px', height: '32px', fontSize: '16px', p: 0.2 }}>{member?.username?.[0] || "s"}</Avatar>
+                    </ListItemAvatar>
+                    <ListItemText primary={member.username} sx={{ pr: 1.5, minWidth: '110px' }} />
+                    <Input
+                      type="text"
+                      endAdornment={<InputAdornment position="start">%</InputAdornment>}
+                      name="splitAmount"
+                      id="splitAmount"
+                      defaultValue={0}
+                      value={splitPer[index]?.per}
+                      sx={{ width: `${Math.max(70, (member.owedBy.toString().length || 1) * 15)}px` }}
+                      inputProps={{
+                        style: { transition: 'width 0.2s' },
+                        min: 0,
+                        inputMode: 'numeric',
+                      }}
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        if (/^\d*\.?\d*$/.test(value) || value === '')
+                          handleSplitPer(e, member)
+                      }}
+                    />
+                  </ListItem>)}
+              </List>
+            }
           </Box>}
         </DialogContent>
         <DialogActions sx={{ mb: '4px' }}>
