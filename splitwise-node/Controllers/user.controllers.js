@@ -22,7 +22,17 @@ const addTempUsers = async (req, res) => {
     }
 }
 
+const getFriends = async (req, res) => {
+    try {
+        const friends = await TempUser.find({ inviteBy: req.userId });
+        return res.status(200).json(friends);
+    } catch (error) {
+        return res.status(500).json({ message: 'Internal server error' });
+    }
+};
+
 module.exports = {
     getUserDetails,
-    addTempUsers
+    addTempUsers,
+    getFriends
 }

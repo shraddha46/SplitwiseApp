@@ -88,6 +88,7 @@ const AddExpense = ({ open, closeExpenseModel }) => {
   const [splitMethod, setSplitMethod] = useState("");
   const [splitAmount, setSplitAmount] = useState(0.00);
   const [splitPer, setSplitPer] = useState([]);
+  const [splitShare, setSplitShare] = useState([]);
 
   const [inviteMemberData, setInviteMemberData] = useState([]);
   const [anchorMemberEl, setAnchorMemberEl] = useState(null);
@@ -105,8 +106,9 @@ const AddExpense = ({ open, closeExpenseModel }) => {
 
   useEffect(() => {
     setExpenseData(prev => ({ ...prev, createdBy: userData.id, splitMethod: splitTypes[0].value }));
-    setExpenseMembers(prev => [...prev, { userId: userData.id, username: userData.username, paidBy: 0, owedBy: 0 }])
-    setSplitPer(prev => [...prev, { username: userData.username, per: 100.00 }]);
+    setExpenseMembers([{ userId: userData.id, username: userData.username, paidBy: 0, owedBy: 0 }])
+    setSplitPer([{ username: userData.username, per: 100.00 }]);
+    setSplitShare([{ username: userData.username, share: 1 }]);
     setSelectedMember(userData.username);
     setSplitMethod(splitTypes[0].value);
   }, [userData]);
@@ -137,6 +139,7 @@ const AddExpense = ({ open, closeExpenseModel }) => {
 
       updatedShares.push({
         username: inviteMembers.username,
+        email: inviteMembers.email,
         paidBy: 0,
         owedBy: countDecimalMember === 1 ? parseFloat((baseShare + 0.01).toFixed(2)) : decimalShare
       });
@@ -152,6 +155,16 @@ const AddExpense = ({ open, closeExpenseModel }) => {
         per: (100 / totalMembers).toFixed(2)
       });
       return splitPerData;
+    });
+    setSplitShare(prev => { 
+      const splitShareData = prev.map(val => {
+        return { ...val, share: 1};
+      });
+      splitShareData.push({
+        username: inviteMembers.username,
+        share: 1
+      });
+      return splitShareData;
     });
   };
 
@@ -174,6 +187,9 @@ const AddExpense = ({ open, closeExpenseModel }) => {
     setSelectedMember(userData.username);
     setSplitPer(prev => prev.filter(val => val.username !== memberName).map(member => {
       return { ...member, per: (100 / totalMembers).toFixed(2) };
+    }));
+    setSplitShare(prev => prev.filter(val => val.username !== memberName).map(member => {
+      return { ...member, share: 1 };
     }));
   }
 
@@ -287,6 +303,24 @@ const AddExpense = ({ open, closeExpenseModel }) => {
     setExpenseMembers(prev => prev.map(val => val.username === member.username ? { ...val, owedBy: (value * expenseData.amount) / 100 } : val));
   }
 
+  const handleSplitShare = (e, member) => {
+    const value = e.target.value;
+    var totalShares = 0;
+    setOwedAmountError("");
+    setSplitShare(prev => {
+      const updatedShares = prev.map(val => {
+        if (val.username === member.username) {
+          totalShares += Number(value);
+          return { ...val, share: value };
+        }
+        totalShares += Number(val.share);
+        return val;
+      });
+      return updatedShares;
+    });
+    setExpenseMembers(prev => prev.map((val,index) => val.username === member.username ? { ...val, owedBy: ((expenseData.amount / totalShares ) * value).toFixed(2) } : {...val, owedBy: ((expenseData.amount / totalShares) * splitShare[index]?.share).toFixed(2) }));
+  }
+
   return (
     <>
       <Dialog open={open} BackdropProps={{
@@ -307,7 +341,7 @@ const AddExpense = ({ open, closeExpenseModel }) => {
         <DialogContent sx={{ display: 'flex' }}>
           <Box>
             <FieldContainer>
-              <AddMember inviteMemberData={inviteMemberData} handleDeleteMemberData={handleDeleteMemberData} handleInviteMemberData={(data) => handleInviteMemberData(data)} />
+              <AddMember userData inviteMemberData={inviteMemberData} handleDeleteMemberData={handleDeleteMemberData} handleInviteMemberData={(data) => handleInviteMemberData(data)} />
             </FieldContainer>
             <div>
               <FieldContainer style={{ paddingTop: '0px', marginTop: '8px' }}>
@@ -510,7 +544,10 @@ const AddExpense = ({ open, closeExpenseModel }) => {
                     <ListItemAvatar sx={{ minWidth: '45px' }}>
                       <Avatar sx={{ width: '32px', height: '32px', fontSize: '16px', p: 0.2 }}>{member?.username?.[0] || "s"}</Avatar>
                     </ListItemAvatar>
-                    <ListItemText primary={member.username} sx={{ pr: 1.5, minWidth: '110px' }} />
+                    <Box sx={{ display: 'flex', flexDirection: 'column', pr: 1.5, minWidth: '110px', p: 0 }}>
+                      <Typography variant="body1" sx={{ mb: 0 }}>{member.username}</Typography>
+                      <Typography variant="body2" color="text.secondary" sx={{ fontSize: '12px' }}>{`$${member.owedBy}`}</Typography>
+                    </Box>
                     <Input
                       type="text"
                       endAdornment={<InputAdornment position="start">%</InputAdornment>}
@@ -518,7 +555,7 @@ const AddExpense = ({ open, closeExpenseModel }) => {
                       id="splitAmount"
                       defaultValue={0}
                       value={splitPer[index]?.per}
-                      sx={{ width: `${Math.max(70, (member.owedBy.toString().length || 1) * 15)}px` }}
+                      sx={{ width: `${Math.max(70, (splitPer[index]?.per.toString().length || 1) * 15)}px` }}
                       inputProps={{
                         style: { transition: 'width 0.2s' },
                         min: 0,
@@ -528,6 +565,38 @@ const AddExpense = ({ open, closeExpenseModel }) => {
                         const value = e.target.value;
                         if (/^\d*\.?\d*$/.test(value) || value === '')
                           handleSplitPer(e, member)
+                      }}
+                    />
+                  </ListItem>)}
+              </List>
+            }
+            {
+              splitMethod === "split_by_shares" && <List sx={{ p: 0 }}>
+                {(expenseMembers && expenseMembers.length > 0) && expenseMembers.map((member, index) =>
+                  <ListItem button key={index} sx={{ pl: 0, pr: 0 }}>
+                    <ListItemAvatar sx={{ minWidth: '45px' }}>
+                      <Avatar sx={{ width: '32px', height: '32px', fontSize: '16px', p: 0.2 }}>{member?.username?.[0] || "s"}</Avatar>
+                    </ListItemAvatar>
+                    <Box sx={{ display: 'flex', flexDirection: 'column', pr: 1.5, minWidth: '110px', p: 0 }}>
+                      <Typography variant="body1" sx={{ mb: 0 }}>{member.username}</Typography>
+                      <Typography variant="body2" color="text.secondary" sx={{ fontSize: '12px' }}>{`$${member.owedBy}`}</Typography>
+                    </Box>
+                    <Input
+                      type="text"
+                      name="splitAmount"
+                      id="splitAmount"
+                      defaultValue={0}
+                      value={splitShare[index]?.share}
+                      sx={{ width: `${Math.max(70, (splitShare[index]?.share.toString().length || 1) * 15)}px` }}
+                      inputProps={{
+                        style: { transition: 'width 0.2s' },
+                        min: 0,
+                        inputMode: 'numeric',
+                      }}
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        if (/^\d*\.?\d*$/.test(value) || value === '')
+                          handleSplitShare(e, member)
                       }}
                     />
                   </ListItem>)}

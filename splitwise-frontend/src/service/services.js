@@ -23,3 +23,7 @@ export function addTempUsersAPI(payload) {
 export function getAllExpenses() {
     return baseService.get('/expense/all');
 };
+
+export function getFriendsAPI() {
+    return baseService.get('/user/getFriends');
+};

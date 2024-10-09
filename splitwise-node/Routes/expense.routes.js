@@ -168,4 +168,38 @@ router.post('/addExpense', authMiddleware, expenseControllers.addExpense);
 
 router.get('/all', authMiddleware, expenseControllers.getAllExpenses);
 
+/**
+ * @openapi
+ * /expense/getAllDebts:
+ *   get:
+ *     summary: Get all debts
+ *     description: Retrieve a list of all debits. Requires authorization.
+ *     tags: [Expense]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *      - in: header
+ *        name: Authorization
+ *        required: true
+ *        description: Bearer token for authentication
+ *        schema:
+ *         type: string
+ *         example: "Bearer YOUR_JWT_TOKEN"
+ *     responses:
+ *      200:
+ *       description: A list of debts
+ *       content:
+ *        application/json:
+ *         schema:
+ *          type: array
+ *          items:
+ *           $ref: '#/components/schemas/Expense'
+ *      401:
+ *         description: Unauthorized. Invalid or missing token.
+ *      500:
+ *         description: Internal server error
+ */
+
+router.get('/getAllDebts', authMiddleware, expenseControllers.getAllDebts);
+
 module.exports = router;

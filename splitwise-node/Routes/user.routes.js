@@ -120,4 +120,53 @@ router.get('/detail',authMiddleware, userControllers.getUserDetails);
 
 router.post('/addTempUsers',authMiddleware,userControllers.addTempUsers);
 
+/**
+ * @openapi
+ * /user/getFriends:
+ *   get:
+ *     summary: Get friend list
+ *     description: Retrive list of a friend. Requires authorization.
+ *     tags: [TempUser]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *      - in: header
+ *        name: Authorization
+ *        required: true
+ *        description: Bearer token for authentication
+ *        schema:
+ *         type: string
+ *         example: "Bearer YOUR_JWT_TOKEN"
+ *     responses:
+ *      200:
+ *       description: Friend list retrieved successfully
+ *       content:
+ *        application/json:
+ *         schema:
+ *          type: array
+ *          items:
+ *           type: object
+ *           properties:
+ *             id:
+ *               type: string
+ *               description: The temp user's ID 
+ *             inviteBy:
+ *               type: string
+ *               description: The user's ID
+ *             username:
+ *               type: string
+ *               description: The user's username
+ *             email:
+ *               type: string
+ *               description: The user's email address
+ *      401:
+ *         description: Unauthorized. Invalid or missing token.
+ *      404:
+ *         description: User not found
+ *      500:
+ *         description: Internal server error
+ */
+
+router.get('/getFriends', authMiddleware, userControllers.getFriends );
+
 module.exports = router;
