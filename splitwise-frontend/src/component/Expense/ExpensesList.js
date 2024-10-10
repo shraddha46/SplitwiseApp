@@ -67,7 +67,7 @@ const AllExpenses = () => {
                                     <Typography variant="body2" color="text.secondary">{paidUser[index]?.length > 1 ? <b>{`${paidUser[index].length} members `}</b> : paidUser[index]?.length === 1 && paidUser[index][0] ? <b>{`${paidUser[index][0]} `}</b> : <b>more members </b>}paid for</Typography>
                                 </Box>
                             </ListItem>
-                            <Divider />
+                            {(allExpensesList.length - 1) !== index && <Divider />}
                         </React.Fragment>
                     ))
                 ) : (

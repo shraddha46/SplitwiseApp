@@ -1,5 +1,6 @@
 const express = require('express');
 const userControllers = require('../Controllers/user.controllers');
+const expenseControllers = require('../Controllers/expense.controllers');
 const authMiddleware = require('../Middleware/auth');
 const router = express.Router();
 
@@ -168,5 +169,39 @@ router.post('/addTempUsers',authMiddleware,userControllers.addTempUsers);
  */
 
 router.get('/getFriends', authMiddleware, userControllers.getFriends );
+
+/**
+ * @openapi
+ * /user/getOwnBalance:
+ *   get:
+ *     summary: Get Own Balance
+ *     description: Retrieve own balance. Requires authorization.
+ *     tags: [User]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *      - in: header
+ *        name: Authorization
+ *        required: true
+ *        description: Bearer token for authentication
+ *        schema:
+ *         type: string
+ *         example: "Bearer YOUR_JWT_TOKEN"
+ *     responses:
+ *      200:
+ *       description: Get own balance
+ *       content:
+ *        application/json:
+ *         schema:
+ *          type: array
+ *          items:
+ *           $ref: '#/components/schemas/Expense'
+ *      401:
+ *         description: Unauthorized. Invalid or missing token.
+ *      500:
+ *         description: Internal server error
+ */
+
+router.get('/getOwnBalance', authMiddleware, expenseControllers.getOwnBalance);
 
 module.exports = router;

@@ -202,4 +202,6 @@ router.get('/all', authMiddleware, expenseControllers.getAllExpenses);
 
 router.get('/getAllDebts', authMiddleware, expenseControllers.getAllDebts);
 
+
+
 module.exports = router;

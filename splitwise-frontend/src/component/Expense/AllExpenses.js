@@ -1,10 +1,18 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+import { useDispatch } from 'react-redux';
 import { Box, AppBar, Tabs, Tab, Typography } from '@mui/material';
 import { styled } from '@mui/material/styles';
 import ExpensesList from './ExpensesList';
+import { getOwnBalanceAction } from '../../action/user';
 
 const CustomTabs = styled(Tabs)(({ theme }) => ({
     backgroundColor: theme.palette.secondary.orange
+}));
+const CustomOweText = styled(Typography)(({ theme }) => ({
+    color: theme.palette.secondary.orange
+}));
+const CustomOwedText = styled(Typography)(({ theme }) => ({
+    color: theme.palette.secondary.main
 }));
 
 const TabPanel = (props) => {
@@ -29,14 +37,30 @@ const TabPanel = (props) => {
 
 const AllExpenses = () => {
     const [value, setValue] = React.useState(0);
+    const [ownBalance, setOwnBalance] = useState({netOwed: 0});
+    const dispatch = useDispatch();
+
+    useEffect(() => {
+        const fetchBalance = async () => {
+            try {
+                const balance = await dispatch(getOwnBalanceAction());
+                if (balance.length > 0) {
+                    setOwnBalance(balance[0]);
+                }
+            } catch (error) {
+                console.error(error);
+            }
+        };
+        fetchBalance();
+    }, [value]);
 
     const handleChange = (event, newValue) => {
         setValue(newValue);
     };
 
     return (
-        <>
-            <Box sx={{ width: '100%' }}>
+        <div style={{ display: 'flex', width: '100%' }}>
+            <Box sx={{ width: '80%', boxShadow: 3 }}>
                 <AppBar position="static">
                     <CustomTabs value={value} onChange={handleChange} aria-label="simple tabs example" textColor="inherit"
                         sx={{
@@ -80,7 +104,35 @@ const AllExpenses = () => {
                     Content for Tab Three
                 </TabPanel>
             </Box>
-        </>
+            <Box sx={{ width: '20%', ml: '20px', p: 2, boxShadow: 3, height: 'fit-content' }}>
+                <Typography variant="body2" color="text.secondary" sx={{ fontSize: 18, fontWeight: 600, color: '#a39999' }}>
+                    YOUR TOTAL BALANCE
+                </Typography>
+                {
+                    ownBalance?.netOwed < 0 ?
+                        (
+                            <>
+                                <CustomOweText variant="body2" color="text.secondary" sx={{ pt: 1.3, fontSize: '18px' }}>
+                                    you owe
+                                </CustomOweText>
+                                <CustomOweText variant="body2" color="text.secondary" sx={{ fontSize: 24, fontWeight: 600 }}>
+                                    {`$${Math.abs(ownBalance.netOwed)}`}
+                                </CustomOweText>
+
+                            </>
+                        ) : (
+                            <>
+                                <CustomOwedText variant="body2" color="text.secondary" sx={{ pt: 1.3, fontSize: '18px' }}>
+                                    you are owed
+                                </CustomOwedText>
+                                <CustomOwedText variant="body2" color="text.secondary" sx={{ fontSize: 24, fontWeight: 600 }}>
+                                    {`$${ownBalance.netOwed}`}
+                                </CustomOwedText>
+                            </>
+                        )
+                }
+            </Box>
+        </div>
     )
 }
 

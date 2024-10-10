@@ -1,6 +1,6 @@
 import { combineReducers } from 'redux';
 import { signupReducer, loginReducer } from './defaultReducers/authReducer';
-import { userReducer } from './defaultReducers/userReducer';
+import { userReducer, userBalanceReducer } from './defaultReducers/userReducer';
 import { addExpenseReducer, allExpensesReducer } from './defaultReducers/expenseReducer';
 import { addTempUsersReducer, getFriendsReducer } from './defaultReducers/tempUserReducer';
 
@@ -11,7 +11,8 @@ const allReducer = {
     expenseState: addExpenseReducer,
     allExpensesState: allExpensesReducer,
     tempUserState: addTempUsersReducer,
-    friendsState: getFriendsReducer
+    friendsState: getFriendsReducer,
+    balanceState: userBalanceReducer
 }
 
 export default combineReducers(allReducer);

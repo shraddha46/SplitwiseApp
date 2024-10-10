@@ -27,3 +27,7 @@ export function getAllExpenses() {
 export function getFriendsAPI() {
     return baseService.get('/user/getFriends');
 };
+
+export function getOwnBalanceAPI() {
+    return baseService.get('/user/getOwnBalance');
+};
