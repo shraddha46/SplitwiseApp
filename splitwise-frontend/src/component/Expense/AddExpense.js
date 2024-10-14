@@ -126,7 +126,7 @@ const AddExpense = ({ open, closeExpenseModel }) => {
     const remainingAmount = (expenseData.amount - totalDistributedDecimal).toFixed(2);
     const countDecimalMember = Math.round(remainingAmount / 0.01);
 
-    setInviteMemberData(prev => [...prev, { ...inviteMembers, inviteBy: userData.id }]);
+    setInviteMemberData(prev => [...prev, inviteMembers]);
 
     setExpenseMembers(prev => {
       const updatedShares = prev.map((member, index) => {
@@ -244,9 +244,10 @@ const AddExpense = ({ open, closeExpenseModel }) => {
     else {
       setPaidAmountError('');
       setOwedAmountError('');
+      console.log("expense",{ ...expenseData, tempUsers: inviteMemberData, expenseDetail: expenseMembers })
       if (validateExpenseData()) {
         try {
-          await dispatch(addExpenseAction({ ...expenseData, tempUsers: inviteMemberData, expenseDetail: expenseMembers }));
+          await dispatch(addExpenseAction({ ...expenseData, friend: inviteMemberData, expenseDetail: expenseMembers }));
           setOpenSuccessModel(true);
         } catch (error) {
           console.error(error);

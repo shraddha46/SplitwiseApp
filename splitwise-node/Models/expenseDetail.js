@@ -9,12 +9,7 @@ const expenseDetailSchema = new mongoose.Schema({
     userId: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User',
-        nullable: true,
-    },
-    tempUserId: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'TempUser',
-        nullable: true,
+        required: true,
     },
     paidBy: {
         type: mongoose.Types.Decimal128,

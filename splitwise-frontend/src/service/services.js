@@ -17,7 +17,7 @@ export function addExpenseAPI(payload) {
 };
 
 export function addTempUsersAPI(payload) {
-    return baseService.post('/user/addTempUsers', payload);
+    return baseService.post('/friends/addFriends', payload);
 };
 
 export function getAllExpenses() {
@@ -25,7 +25,7 @@ export function getAllExpenses() {
 };
 
 export function getFriendsAPI() {
-    return baseService.get('/user/getFriends');
+    return baseService.get('/friends/getFriends');
 };
 
 export function getOwnBalanceAPI() {

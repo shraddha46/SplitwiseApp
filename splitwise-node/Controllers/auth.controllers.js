@@ -20,7 +20,7 @@ const login = async (req, res) => {
             if (user.password === body.password) {
                 var userFind = await User.findOne({ password: body.password });
                 var token = await jwthelper.sign(userFind._id, "some secret");
-                return res.status(200).json({ "id": userFind._id, "username": userFind.username, email: userFind.email, "token": token });
+                return res.status(200).json({ "id": userFind._id, "username": userFind.username, email: userFind.email, registration_status: userFind.registration_status ,"token": token });
             } else {
                 return res.status(401).send('Password is invalid!!');
             }

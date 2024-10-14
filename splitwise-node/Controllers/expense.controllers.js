@@ -1,42 +1,102 @@
+const User = require('../Models/user');
 const Expense = require('../Models/expense');
 const ExpenseDetail = require('../Models/expenseDetail');
-const TempUser = require('../Models/tempUser');
+const Friend = require('../Models/friend');
 
 const addExpense = async (req, res) => {
   try {
-    const { description, amount, createdBy, splitMethod, date, tempUsers, expenseDetail } = req.body;
+    const { description, amount, createdBy, splitMethod, date, friend, expenseDetail } = req.body;
     // Create the expense
     const newExpense = new Expense({ description, amount, createdBy, splitMethod, date });
     await newExpense.save();
+    console.log("newExpense===",newExpense)
+    // Save friend
+    var savedFriend = [];
 
-    // Save temporary users
-    var savedTempUsers = [];
-    const findTempUser = await TempUser.find({ inviteBy: req.userId });
-
-    if (tempUsers.length > 0) {
-      let addTempUsers = tempUsers;
-      if (findTempUser.length > 0) {
-        addTempUsers = addTempUsers.filter(val => !findTempUser.some(v => v.email === val.email));
+    if (friend.length > 0) {
+      const findInviteUser = friend.filter(v => !('userId' in v));
+      console.log("Invite Users to be saved:", findInviteUser);
+  
+      if (findInviteUser.length > 0) {
+          try {
+              const savedInviteUser = await User.insertMany(findInviteUser);
+              console.log("Saved Invite Users:", savedInviteUser);
+              
+              if (savedInviteUser.length > 0) {
+                  savedFriend = await Friend.insertMany(
+                      savedInviteUser.map(item => ({ userId: req.userId, friendId: item._id }))
+                  );
+              }
+          } catch (error) {
+              console.error("Error inserting invite users:", error);
+              return res.status(500).send('Error saving invite users');
+          }
+      } else {
+          console.log("No invite users to save.");
       }
-      savedTempUsers = await TempUser.insertMany(addTempUsers);
-    }
+  }
+  
+
+    console.log("friendss===",savedFriend)
 
     // Save expense details
     const savedExpenseDetail = await ExpenseDetail.insertMany(expenseDetail.map(detail => {
+      console.log("aaaa",savedFriend.length > 0 ? savedFriend.find(u => u.email === detail.email)._id : null)
       return ({
         expenseId: newExpense._id,
-        userId: detail.userId || null,
-        tempUserId: detail.userId ? null : findTempUser.length > 0 ? findTempUser.filter(u => u.email === detail.email)[0]._id : savedTempUsers.length > 0 ? savedTempUsers.filter(user => user.email === detail.email)[0]._id : null,
+        userId: detail.userId || savedFriend.length > 0 ? savedFriend.find(u => u.email === detail.email)._id : null,
         paidBy: detail.paidBy || 0.00,
         owedBy: detail.owedBy || 0.00
       })
     }));
 
-    return res.status(200).json({ newExpense, tempUsers: savedTempUsers, expenseDetail: savedExpenseDetail });
+    console.log("expense detail",savedExpenseDetail)
+
+    return res.status(200).json({ newExpense, friend: savedFriend, expenseDetail: savedExpenseDetail });
   } catch (error) {
     return res.status(500).send('an error occured while create expense');
   }
 };
+
+// const addExpense = async (req, res) => {
+//   try {
+//     const { description, amount, createdBy, splitMethod, date, friend, expenseDetail } = req.body;
+//     // Create the expense
+//     const newExpense = new Expense({ description, amount, createdBy, splitMethod, date });
+//     await newExpense.save();
+//     console.log("newExpense===",newExpense)
+//     // Save friend
+//     var savedFriend = [];
+
+//     if (friend.length > 0) {
+//       const findInviteUser = friend.filter(v => !('userId' in v));
+//       console.log("findddd",findInviteUser)
+//       const savedInviteUser = await User.insertMany(findInviteUser);
+//       console.log("ssss",savedInviteUser)
+//       if(savedInviteUser.length > 0)
+//         savedFriend = await Friend.insertMany(savedInviteUser.map(item => ({userId: req.userId, friendId: item._id})));
+//     }
+
+//     console.log("friendss===",savedFriend)
+
+//     // Save expense details
+//     const savedExpenseDetail = await ExpenseDetail.insertMany(expenseDetail.map(detail => {
+//       console.log("aaaa",savedFriend.length > 0 ? savedFriend.find(u => u.email === detail.email)._id : null)
+//       return ({
+//         expenseId: newExpense._id,
+//         userId: detail.userId || savedFriend.length > 0 ? savedFriend.find(u => u.email === detail.email)._id : null,
+//         paidBy: detail.paidBy || 0.00,
+//         owedBy: detail.owedBy || 0.00
+//       })
+//     }));
+
+//     console.log("expense detail",savedExpenseDetail)
+
+//     return res.status(200).json({ newExpense, friend: savedFriend, expenseDetail: savedExpenseDetail });
+//   } catch (error) {
+//     return res.status(500).send('an error occured while create expense');
+//   }
+// };
 
 const getAllExpenses = async (req, res) => {
   try {
@@ -108,76 +168,91 @@ const getAllExpenses = async (req, res) => {
 
 const getAllDebts = async (req, res) => {
   try {
-
-    const allDebts = await ExpenseDetail.aggregate([
+     const allDebts = await ExpenseDetail.aggregate([
       {
-        $group: {
-          // _id: {
-          //   $cond: {
-          //     if: { $ne: ["$userId", null] },
-          //     then: "$userId",
-          //     else: "$tempUserId"
-          //   }
-          // },
-          _id:"$tempUserId",
-          totalOwed: { $sum: "$owedBy" },  // Total amount owed by this user
-          totalPaid: { $sum: "$paidBy" }   // Total amount paid by this user
-        }
+        $lookup: {
+          from: 'Expense',
+          localField: '_id',
+          foreignField: 'expenseId',
+          as: 'expenseDetail',
+        },
       },
-{
-    $lookup: {
-      from: "User", // Replace with your actual users collection name
-      localField: "_id", // The field in the ExpenseDetail collection
-      foreignField: "_id", // The field in the Users collection
-      as: "oweToUser" // This will hold the matching user documents
-    }
-  },
-  {
-    $unwind: {
-      path: "$oweToUser",
-      preserveNullAndEmptyArrays: true // Keep records even if no match is found
-    }
-  },
       {
-        $project: {
-          oweTo: "$oweToUser._id",
-          owedTo: "$_id",
-          netOwed: { $subtract: ["$totalOwed", "$totalPaid"] } // Calculate net owed
-        }
+        $unwind: {
+          path: '$expenseDetail',
+          preserveNullAndEmptyArrays: true,
+        },
       },
-      // {
-      //   $match: {
-      //     netOwed: { $gt: 0 } // Only include users who owe money
-      //   }
-      // },
-      // {
-      //   $lookup: {
-      //     from: "ExpenseDetail", // Joining with the same collection
-      //     localField: "userId",
-      //     foreignField: "tempUserId", // Adjust as needed based on your schema
-      //     as: "debts" // This will contain records of who this user owes money to
-      //   }
-      // },
-      // {
-      //   $unwind: "$debts" // Flatten the array to get individual records
-      // },
-      // {
-      //   $project: {
-      //     payer: "$userId",
-      //     payee: "$debts.userId", // Adjust according to the relation in your schema
-      //     amount: "$debts.owedBy" // Amount owed
-      //   }
-      // },
-      // {
-      //   $group: {
-      //     _id: {
-      //       payer: "$payer",
-      //       payee: "$payee"
-      //     },
-      //     totalAmount: { $sum: "$amount" } // Total amount owed between payer and payee
-      //   }
-      // }
-    ]);
+  ]);
+//     const allDebts = await ExpenseDetail.aggregate([
+//       {
+//         $group: {
+//           // _id: {
+//           //   $cond: {
+//           //     if: { $ne: ["$userId", null] },
+//           //     then: "$userId",
+//           //     else: "$tempUserId"
+//           //   }
+//           // },
+//           _id:"$tempUserId",
+//           totalOwed: { $sum: "$owedBy" },  // Total amount owed by this user
+//           totalPaid: { $sum: "$paidBy" }   // Total amount paid by this user
+//         }
+//       },
+// {
+//     $lookup: {
+//       from: "User", // Replace with your actual users collection name
+//       localField: "_id", // The field in the ExpenseDetail collection
+//       foreignField: "_id", // The field in the Users collection
+//       as: "oweToUser" // This will hold the matching user documents
+//     }
+//   },
+//   {
+//     $unwind: {
+//       path: "$oweToUser",
+//       preserveNullAndEmptyArrays: true // Keep records even if no match is found
+//     }
+//   },
+//       {
+//         $project: {
+//           oweTo: "$oweToUser._id",
+//           owedTo: "$_id",
+//           netOwed: { $subtract: ["$totalOwed", "$totalPaid"] } // Calculate net owed
+//         }
+//       },
+//       // {
+//       //   $match: {
+//       //     netOwed: { $gt: 0 } // Only include users who owe money
+//       //   }
+//       // },
+//       // {
+//       //   $lookup: {
+//       //     from: "ExpenseDetail", // Joining with the same collection
+//       //     localField: "userId",
+//       //     foreignField: "tempUserId", // Adjust as needed based on your schema
+//       //     as: "debts" // This will contain records of who this user owes money to
+//       //   }
+//       // },
+//       // {
+//       //   $unwind: "$debts" // Flatten the array to get individual records
+//       // },
+//       // {
+//       //   $project: {
+//       //     payer: "$userId",
+//       //     payee: "$debts.userId", // Adjust according to the relation in your schema
+//       //     amount: "$debts.owedBy" // Amount owed
+//       //   }
+//       // },
+//       // {
+//       //   $group: {
+//       //     _id: {
+//       //       payer: "$payer",
+//       //       payee: "$payee"
+//       //     },
+//       //     totalAmount: { $sum: "$amount" } // Total amount owed between payer and payee
+//       //   }
+//       // }
+//     ]);
     
     return res.status(200).json(allDebts);
   } catch (error) {
