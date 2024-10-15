@@ -1,3 +1,4 @@
+const mongoose = require('mongoose');
 const User = require('../Models/user');
 const Expense = require('../Models/expense');
 const ExpenseDetail = require('../Models/expenseDetail');
@@ -6,21 +7,20 @@ const Friend = require('../Models/friend');
 const addExpense = async (req, res) => {
   try {
     const { description, amount, createdBy, splitMethod, date, friend, expenseDetail } = req.body;
+
     // Create the expense
     const newExpense = new Expense({ description, amount, createdBy, splitMethod, date });
     await newExpense.save();
-    console.log("newExpense===",newExpense)
+
     // Save friend
     var savedFriend = [];
 
     if (friend.length > 0) {
       const findInviteUser = friend.filter(v => !('userId' in v));
-      console.log("Invite Users to be saved:", findInviteUser);
   
       if (findInviteUser.length > 0) {
           try {
               const savedInviteUser = await User.insertMany(findInviteUser);
-              console.log("Saved Invite Users:", savedInviteUser);
               
               if (savedInviteUser.length > 0) {
                   savedFriend = await Friend.insertMany(
@@ -35,68 +35,22 @@ const addExpense = async (req, res) => {
           console.log("No invite users to save.");
       }
   }
-  
-
-    console.log("friendss===",savedFriend)
 
     // Save expense details
     const savedExpenseDetail = await ExpenseDetail.insertMany(expenseDetail.map(detail => {
-      console.log("aaaa",savedFriend.length > 0 ? savedFriend.find(u => u.email === detail.email)._id : null)
       return ({
         expenseId: newExpense._id,
-        userId: detail.userId || savedFriend.length > 0 ? savedFriend.find(u => u.email === detail.email)._id : null,
+        userId: detail.userId ? detail.userId : savedFriend.length > 0 ? savedFriend.find(u => u.email === detail.email)?._id : null,
         paidBy: detail.paidBy || 0.00,
         owedBy: detail.owedBy || 0.00
       })
     }));
-
-    console.log("expense detail",savedExpenseDetail)
 
     return res.status(200).json({ newExpense, friend: savedFriend, expenseDetail: savedExpenseDetail });
   } catch (error) {
     return res.status(500).send('an error occured while create expense');
   }
 };
-
-// const addExpense = async (req, res) => {
-//   try {
-//     const { description, amount, createdBy, splitMethod, date, friend, expenseDetail } = req.body;
-//     // Create the expense
-//     const newExpense = new Expense({ description, amount, createdBy, splitMethod, date });
-//     await newExpense.save();
-//     console.log("newExpense===",newExpense)
-//     // Save friend
-//     var savedFriend = [];
-
-//     if (friend.length > 0) {
-//       const findInviteUser = friend.filter(v => !('userId' in v));
-//       console.log("findddd",findInviteUser)
-//       const savedInviteUser = await User.insertMany(findInviteUser);
-//       console.log("ssss",savedInviteUser)
-//       if(savedInviteUser.length > 0)
-//         savedFriend = await Friend.insertMany(savedInviteUser.map(item => ({userId: req.userId, friendId: item._id})));
-//     }
-
-//     console.log("friendss===",savedFriend)
-
-//     // Save expense details
-//     const savedExpenseDetail = await ExpenseDetail.insertMany(expenseDetail.map(detail => {
-//       console.log("aaaa",savedFriend.length > 0 ? savedFriend.find(u => u.email === detail.email)._id : null)
-//       return ({
-//         expenseId: newExpense._id,
-//         userId: detail.userId || savedFriend.length > 0 ? savedFriend.find(u => u.email === detail.email)._id : null,
-//         paidBy: detail.paidBy || 0.00,
-//         owedBy: detail.owedBy || 0.00
-//       })
-//     }));
-
-//     console.log("expense detail",savedExpenseDetail)
-
-//     return res.status(200).json({ newExpense, friend: savedFriend, expenseDetail: savedExpenseDetail });
-//   } catch (error) {
-//     return res.status(500).send('an error occured while create expense');
-//   }
-// };
 
 const getAllExpenses = async (req, res) => {
   try {
@@ -120,15 +74,7 @@ const getAllExpenses = async (req, res) => {
           from: 'User',
           localField: 'expenseDetail.userId',
           foreignField: '_id',
-          as: 'paidByUser',
-        },
-      },
-      {
-        $lookup: {
-          from: 'TempUser',
-          localField: 'expenseDetail.tempUserId',
-          foreignField: '_id',
-          as: 'owedByUser',
+          as: 'userDetail',
         },
       },
       {
@@ -141,15 +87,34 @@ const getAllExpenses = async (req, res) => {
           date: { $first: '$date' },
           createdAt: { $first: '$createdAt' },
           expenseDetail: {
-            $push: {
-              _id: '$expenseDetail._id',
+             $push: {
+               _id: '$expenseDetail._id',
               expenseId: '$expenseDetail.expenseId',
               userId: '$expenseDetail.userId',
-              tempUserId: '$expenseDetail.tempUserId',
               paidBy: { $toDouble: '$expenseDetail.paidBy' },
               owedBy: { $toDouble: '$expenseDetail.owedBy' },
-              userName: { $arrayElemAt: ['$paidByUser.username', 0] },
-              tempUserName: { $arrayElemAt: ['$owedByUser.username', 0] }
+              paidByUsers: {
+                $cond: [
+                  {$gt:[{$toDouble: '$expenseDetail.paidBy'},0]},
+                  {
+                    userId: '$expenseDetail.userId',
+                    amount: {$toDouble: '$expenseDetail.paidBy'},
+                    username: { $arrayElemAt: ['$userDetail.username', 0]}
+                  },
+                  null,
+                ],
+              },
+              owedByUsers: {
+                $cond: [
+                  {$gt:[{$toDouble: '$expenseDetail.owedBy'},0]},
+                  {
+                    userId: '$expenseDetail.userId',
+                    amount: {$toDouble: '$expenseDetail.owedBy'},
+                    username: { $arrayElemAt: ['$userDetail.username', 0]}
+                  },
+                  null,
+                ],
+              },
             },
           },
         },
@@ -168,22 +133,143 @@ const getAllExpenses = async (req, res) => {
 
 const getAllDebts = async (req, res) => {
   try {
-     const allDebts = await ExpenseDetail.aggregate([
+    const allDebts = await ExpenseDetail.aggregate([
       {
-        $lookup: {
-          from: 'Expense',
-          localField: '_id',
-          foreignField: 'expenseId',
-          as: 'expenseDetail',
+        $group: {
+          _id: {
+            userId: '$userId', // Group by userId
+            expenseId: '$expenseId' // and expenseId
+          },
+         // expenseId: '$expenseId',
+          //_id: '$userId', // Group by expenseId to gather all details for each transaction
+          totalPaid: {
+            $sum: { $toDouble: '$paidBy' }
+          },
+          totalOwed: {
+            $sum: { $toDouble: '$owedBy' }
+          },
+          // payers: { $addToSet: '$userId' }, // Collect all payers for the transaction
+          // payee: { $first: '$userId' },
+        },
+        //   {
+    //     $group: {
+    //       _id: "$userId",
+    //       //totalPaid: { $sum: { $toDouble: '$paidBy' } },
+    //       //totalOwed: { $sum: { $toDouble: '$owedBy' } }
+    //     }
+    //   },
+      },
+      // {
+      //   $unwind: {
+      //     path: '$payers',
+      //     preserveNullAndEmptyArrays: true,
+      //   },
+      // },
+      // {
+      //   $lookup: {
+      //     from: 'User', // Assuming you have a User collection to get usernames
+      //     localField: 'payers',
+      //     foreignField: '_id',
+      //     as: 'payerDetails',
+      //   },
+      // },
+      // {
+      //   $unwind: {
+      //     path: '$payerDetails',
+      //     preserveNullAndEmptyArrays: true,
+      //   },
+      // },
+      {
+        $project: {
+          _id:0,
+          userId: "$_id.userId",
+          expanseId: "$_id.expenseId",
+         // from: { $arrayElemAt: ['$payers', 0] }, // Adjust to select the first payer
+          //to: '$payee', // Adjust according to your schema
+               totalPaid: '$totalPaid',
+          totalOwed: '$totalOwed',
+          amount: { $toString: { $subtract: ['$totalOwed', '$totalPaid'] } }, // Amount owed
         },
       },
-      {
-        $unwind: {
-          path: '$expenseDetail',
-          preserveNullAndEmptyArrays: true,
-        },
-      },
-  ]);
+      // {
+      //   $project: {
+      //     expenseId: '$expenseId',
+      //     _id: 0,
+      //    // payer: '$payerDetails._id', // Assuming this is the payer ID
+      //     payee: '$userId', // You may need to adjust this depending on your schema
+      //     totalPaid: '$totalPaid',
+      //     totalOwed: '$totalOwed',
+      //     //netOwed: { $subtract: ['$totalOwed', '$totalPaid'] }, // Calculate net owed
+      //   },
+      // },
+      // {
+      //   $match: {
+      //     netOwed: { $ne: 0 }, // Exclude transactions where netOwed is zero
+      //   },
+      // },
+      // {
+      //   $sort: { netOwed: -1 }, // Sort by netOwed in descending order
+      // },
+    ]);
+    
+//    console.log(allDebts);
+    
+    // const allDebts = await ExpenseDetail.aggregate([
+    //   // {
+    //   //   $match: {
+    //   //      userId: new mongoose.Types.ObjectId(req.userId)
+    //   //   },
+    //   // },
+    //   {
+    //     $lookup: {
+    //       from: 'Expense',
+    //       localField: 'expenseId',
+    //       foreignField: '_id',
+    //       as: 'expense',
+    //     },
+    //   },
+    //   {
+    //     $unwind: {
+    //       path: '$expense',
+    //       preserveNullAndEmptyArrays: true,
+    //     },
+    //   },
+    //   {
+    //     $group: {
+    //       _id: "$userId",
+    //       //totalPaid: { $sum: { $toDouble: '$paidBy' } },
+    //       //totalOwed: { $sum: { $toDouble: '$owedBy' } }
+    //     }
+    //   },
+    //   {
+    //     $project: {
+    //       _id: 0,
+    //       userId: "$_id",
+    //       totalPaid: "$totalPaid",
+    //       totalOwed: "$totalOwed",
+    //       netOwed: { $toDouble: { $subtract: ["$totalPaid", "$totalOwed"] } }
+    //     }
+    //   },
+    //   {
+    //     $sort: { netOwed: -1 }
+    //    },
+    // ]);
+  //    const allDebts = await ExpenseDetail.aggregate([
+  //     {
+  //       $lookup: {
+  //         from: 'Expense',
+  //         localField: '_id',
+  //         foreignField: 'expenseId',
+  //         as: 'expenseDetail',
+  //       },
+  //     },
+  //     {
+  //       $unwind: {
+  //         path: '$expenseDetail',
+  //         preserveNullAndEmptyArrays: true,
+  //       },
+  //     },
+  // ]);
 //     const allDebts = await ExpenseDetail.aggregate([
 //       {
 //         $group: {
@@ -267,34 +353,41 @@ const getOwnBalance = async (req, res) => {
     const ownBalance = await ExpenseDetail.aggregate([
       {
         $match: {
-          $or: [
-            { userId: req.userId },
-            { userId: null }
-          ]
-        }
+           userId: new mongoose.Types.ObjectId(req.userId)
+        },
+      },
+      {
+        $lookup: {
+          from: 'Expense',
+          localField: 'expenseId',
+          foreignField: '_id',
+          as: 'expense',
+        },
+      },
+      {
+        $unwind: {
+          path: '$expense',
+          preserveNullAndEmptyArrays: true,
+        },
       },
       {
         $group: {
-          _id: {
-            $cond: {
-              if: { $ne: ["$userId", null] },
-              then: "$userId",
-              else: "$tempUserId"
-            }
-          },
-          totalPaid: { $sum: "$paidBy" },
-          totalOwed: { $sum: "$owedBy" }
+          _id: "$userId",
+          totalPaid: { $sum: { $toDouble: '$paidBy' } },
+          totalOwed: { $sum: { $toDouble: '$owedBy' } }
         }
       },
       {
         $project: {
-          userId: "$userId",
-          netOwed: { $toDouble: { $subtract: ["$totalOwed", "$totalPaid"] } }
+          _id: 0,
+          userId: "$_id",
+          totalPaid: "$totalPaid",
+          netOwed: { $toDouble: { $subtract: ["$totalPaid", "$totalOwed"] } }
         }
       },
       {
         $sort: { netOwed: -1 }
-      }
+       },
     ]);
 
     return res.status(200).json(ownBalance);

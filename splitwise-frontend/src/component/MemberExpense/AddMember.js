@@ -56,7 +56,7 @@ const AddMember = ({ inviteMemberData, handleInviteMemberData, handleDeleteMembe
     }
     const findOptions = options.find(val => val.username === typeof lastItem === 'string' ? lastItem : lastItem.username || lastItem.inputValue)
     if(findOptions) {
-      handleInviteMemberData({email: findOptions.email, username: findOptions.username});
+      handleInviteMemberData({userId: findOptions.friendId, email: findOptions.email, username: findOptions.username});
     } else {
       setMemberEmailModelVal({ isOpen: true, memberName: typeof lastItem === 'string' ? lastItem : lastItem.username || lastItem.inputValue });
     }

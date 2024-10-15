@@ -136,13 +136,18 @@ const AddExpense = ({ open, closeExpenseModel }) => {
         }
         return { ...member, owedBy };
       });
-
-      updatedShares.push({
-        username: inviteMembers.username,
-        email: inviteMembers.email,
-        paidBy: 0,
-        owedBy: countDecimalMember === 1 ? parseFloat((baseShare + 0.01).toFixed(2)) : decimalShare
-      });
+      var newShares = 
+      {
+      username: inviteMembers.username,
+      email: inviteMembers.email,
+      paidBy: 0,
+      owedBy: countDecimalMember === 1 ? parseFloat((baseShare + 0.01).toFixed(2)) : decimalShare
+    }
+     
+      if("userId" in inviteMembers) {
+        newShares = {...newShares, userId: inviteMembers['userId']}
+      }
+      updatedShares.push(newShares);
 
       return updatedShares;
     });
