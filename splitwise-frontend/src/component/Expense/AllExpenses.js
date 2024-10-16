@@ -3,6 +3,7 @@ import { useDispatch } from 'react-redux';
 import { Box, AppBar, Tabs, Tab, Typography } from '@mui/material';
 import { styled } from '@mui/material/styles';
 import ExpensesList from './ExpensesList';
+import DebtsList from './DebtsList';
 import { getOwnBalanceAction } from '../../action/user';
 
 const CustomTabs = styled(Tabs)(({ theme }) => ({
@@ -98,7 +99,7 @@ const AllExpenses = () => {
                     <ExpensesList />
                 </TabPanel>
                 <TabPanel value={value} index={1}>
-                    Content for Tab Two
+                    <DebtsList />
                 </TabPanel>
                 <TabPanel value={value} index={2}>
                     Content for Tab Three
