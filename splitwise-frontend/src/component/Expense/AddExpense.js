@@ -127,7 +127,7 @@ const AddExpense = ({ open, closeExpenseModel }) => {
     const countDecimalMember = Math.round(remainingAmount / 0.01);
 
     setInviteMemberData(prev => [...prev, inviteMembers]);
-
+    console.log("invite members",inviteMembers)
     setExpenseMembers(prev => {
       const updatedShares = prev.map((member, index) => {
         let owedBy = decimalShare;
@@ -449,7 +449,7 @@ const AddExpense = ({ open, closeExpenseModel }) => {
                 </List>
               </Popover>
               <Typography component="p" style={{ marginTop: '8px', fontSize: '14px' }}>
-                {`($${splitAmount}/person)`}
+                {`($${splitAmount.toFixed(2)}/person)`}
               </Typography>
               <LocalizationProvider dateAdapter={AdapterDateFns}>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginTop: '18px' }} >
