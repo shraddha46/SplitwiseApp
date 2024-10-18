@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useDispatch } from 'react-redux';
-import { Box, AppBar, Tabs, Tab, Typography } from '@mui/material';
+import { Box, AppBar, Tabs, Tab, Typography, Button } from '@mui/material';
 import { styled } from '@mui/material/styles';
 import ExpensesList from './ExpensesList';
+import AddExpense from './AddExpense';
+import SettleUp from './SettleUp';
 import { getOwnBalanceAction } from '../../action/user';
 
 const CustomTabs = styled(Tabs)(({ theme }) => ({
@@ -13,6 +15,16 @@ const CustomOweText = styled(Typography)(({ theme }) => ({
 }));
 const CustomOwedText = styled(Typography)(({ theme }) => ({
     color: theme.palette.secondary.main
+}));
+const CustomBtn = styled(Button)(({ theme }) => ({
+    fontSize: '16px',
+    textTransform: 'none',
+    color: '#FFF',
+    backgroundColor: theme.palette.secondary.orange,
+}));
+
+const PrimaryBtn = styled(CustomBtn)(({ theme }) => ({
+   backgroundColor: theme.palette.secondary.main
 }));
 
 const TabPanel = (props) => {
@@ -38,6 +50,8 @@ const TabPanel = (props) => {
 const AllExpenses = () => {
     const [value, setValue] = React.useState(0);
     const [ownBalance, setOwnBalance] = useState({netOwed: 0});
+    const [isOpenExpanseModel, setIsOpenExpanseModel] = useState(false);
+    const [isOpenSettleupModel, setIsOpenSettleupModel] = useState(false);
     const dispatch = useDispatch();
 
     useEffect(() => {
@@ -57,6 +71,10 @@ const AllExpenses = () => {
     const handleChange = (event, newValue) => {
         setValue(newValue);
     };
+
+    const openExpenseModel = () => {
+        setIsOpenExpanseModel(true);
+    }
 
     return (
         <div style={{ display: 'flex', width: '100%' }}>
@@ -128,10 +146,20 @@ const AllExpenses = () => {
                                 <CustomOwedText variant="body2" color="text.secondary" sx={{ fontSize: 24, fontWeight: 600 }}>
                                     {`$${ownBalance.netOwed}`}
                                 </CustomOwedText>
+                                <Box>
+                                <CustomBtn variant="contained" sx={{mb: 1.5, mt: 3.5}} fullWidth onClick={openExpenseModel}>
+                        Add an expense
+                    </CustomBtn>
+                    <PrimaryBtn variant="contained" fullWidth onClick={() => setIsOpenSettleupModel(true)}>
+                        Settle up
+                    </PrimaryBtn>
+                                </Box>
                             </>
                         )
                 }
             </Box>
+            <AddExpense open={isOpenExpanseModel} closeExpenseModel={() => setIsOpenExpanseModel(false)} />
+            <SettleUp open={isOpenSettleupModel} closeSettleUpModel={() => setIsOpenSettleupModel(false)} />
         </div>
     )
 }

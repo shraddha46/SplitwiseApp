@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
+//import {useDispatch} from 'react-redux';
 import { Typography, Button, Paper, Box, CircularProgress } from '@mui/material';
 import { styled } from '@mui/system';
 import { useUser } from '../../UserContext';
 import AddExpense from '../Expense/AddExpense';
+//import {getOwnBalanceAction} from '../../action/user';
 
 const DashboardContainer = styled(Paper)(({ theme }) => ({
     boxShadow: 'none',
@@ -22,6 +24,22 @@ const DashBoard = () => {
 
     const [isOpenExpanseModel, setIsOpenExpanseModel] = useState(false);
     const { loading } = useUser();
+    // const [ownBalance, setOwnBalance] = useState({netOwed: 0});
+    // const dispatch = useDispatch();
+
+    // useEffect(() => {
+    //     const fetchBalance = async () => {
+    //         try {
+    //             const balance = await dispatch(getOwnBalanceAction());
+    //             if (balance.length > 0) {
+    //                 setOwnBalance(balance[0]);
+    //             }
+    //         } catch (error) {
+    //             console.error(error);
+    //         }
+    //     };
+    //     fetchBalance();
+    // }, []);
 
     const openExpenseModel = () => {
         setIsOpenExpanseModel(true);
