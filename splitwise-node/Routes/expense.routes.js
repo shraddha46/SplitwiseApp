@@ -49,7 +49,7 @@ const router = express.Router();
  *                 type: string
  *                 format: date-time
  *                 example: "2024-09-17T12:00:00Z"
- *               tempUsers:
+ *               friends:
  *                 type: array
  *                 items:
  *                   type: object
@@ -58,9 +58,6 @@ const router = express.Router();
  *                       type: string
  *                     username:
  *                       type: string
- *                     inviteBy:
- *                       type: string
- *                       example: userId
  *               expanseDetail:
  *                 type: array
  *                 items:
@@ -96,7 +93,7 @@ const router = express.Router();
  *                 date:
  *                   type: string
  *                   format: date-time
- *                 tempUsers:
+ *                 friend:
  *                   type: array
  *                   items:
  *                     type: object
@@ -119,9 +116,6 @@ const router = express.Router();
  *                         type: string
  *                       userId:
  *                         type: string
- *                       tempUserId:
- *                         type: string
- *                         example: userId
  *                       paidBy:
  *                         type: number
  *                       owedBy:

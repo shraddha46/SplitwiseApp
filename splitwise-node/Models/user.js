@@ -15,8 +15,12 @@ const userSchema = new mongoose.Schema({
     password: {
         type: String,
         trim: true,
-        required: true
-    }
+    },
+    registration_status: {
+        type: String,
+        enum: ['confirmed', 'invited'],
+        default: 'invited'
+    },
 },{
     collection: 'User',
     timestamps: true

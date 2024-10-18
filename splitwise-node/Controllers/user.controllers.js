@@ -1,5 +1,5 @@
 const User = require('../Models/user');
-const TempUser = require('../Models/tempUser');
+const TempUser = require('../Models/friend');
 
 const getUserDetails = async (req, res) => {
     try {
@@ -7,7 +7,7 @@ const getUserDetails = async (req, res) => {
         if (!user) {
             return res.status(404).json({ message: 'User not found' });
         }
-        return res.status(200).json({ "id": user._id, "username": user.username, "email": user.email });
+        return res.status(200).json({ "id": user._id, "username": user.username, "email": user.email , "registration_status": user.registration_status});
     } catch (error) {
         return res.status(500).json({ message: 'Internal server error' });
     }

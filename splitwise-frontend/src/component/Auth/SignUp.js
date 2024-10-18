@@ -79,7 +79,7 @@ const SignUp = (props) => {
     const handleSubmit = async () => {
         try {
             if (validateForm()) {
-                await dispatch(signupAction(signupData));
+                await dispatch(signupAction({...signupData,registration_status: 'confirmed'}));
                 navigate("/login");
             }
         } catch (error) {

@@ -21,6 +21,7 @@ const theme = createTheme({
     secondary: {
       main: '#1CC29F',
       orange: '#F54B55'
+      //F2774A
     },
   },
 });

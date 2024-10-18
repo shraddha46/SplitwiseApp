@@ -34,6 +34,9 @@ const router = express.Router();
  *                 type: string
  *                 description: The password of the user.
  *                 example: securepassword123
+ *               registration_status:
+ *                 type: string
+ *                 example: confirmed, invited
  *     responses:
  *       200:
  *         description: User created successfully
@@ -54,6 +57,9 @@ const router = express.Router();
  *                   type: string
  *                   description: The email address of the user.
  *                   example: johndoe@example.com
+ *                 registration_status:
+ *                   type: string
+ *                   example: confirmed, invited
  *       400:
  *         description: Bad request, possibly due to invalid input
  *         content:

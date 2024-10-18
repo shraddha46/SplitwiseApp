@@ -126,8 +126,8 @@ const AddExpense = ({ open, closeExpenseModel }) => {
     const remainingAmount = (expenseData.amount - totalDistributedDecimal).toFixed(2);
     const countDecimalMember = Math.round(remainingAmount / 0.01);
 
-    setInviteMemberData(prev => [...prev, { ...inviteMembers, inviteBy: userData.id }]);
-
+    setInviteMemberData(prev => [...prev, inviteMembers]);
+    console.log("invite members",inviteMembers)
     setExpenseMembers(prev => {
       const updatedShares = prev.map((member, index) => {
         let owedBy = decimalShare;
@@ -136,13 +136,18 @@ const AddExpense = ({ open, closeExpenseModel }) => {
         }
         return { ...member, owedBy };
       });
-
-      updatedShares.push({
-        username: inviteMembers.username,
-        email: inviteMembers.email,
-        paidBy: 0,
-        owedBy: countDecimalMember === 1 ? parseFloat((baseShare + 0.01).toFixed(2)) : decimalShare
-      });
+      var newShares = 
+      {
+      username: inviteMembers.username,
+      email: inviteMembers.email,
+      paidBy: 0,
+      owedBy: countDecimalMember === 1 ? parseFloat((baseShare + 0.01).toFixed(2)) : decimalShare
+    }
+     
+      if("userId" in inviteMembers) {
+        newShares = {...newShares, userId: inviteMembers['userId']}
+      }
+      updatedShares.push(newShares);
 
       return updatedShares;
     });
@@ -244,9 +249,10 @@ const AddExpense = ({ open, closeExpenseModel }) => {
     else {
       setPaidAmountError('');
       setOwedAmountError('');
+      console.log("expense",{ ...expenseData, tempUsers: inviteMemberData, expenseDetail: expenseMembers })
       if (validateExpenseData()) {
         try {
-          await dispatch(addExpenseAction({ ...expenseData, tempUsers: inviteMemberData, expenseDetail: expenseMembers }));
+          await dispatch(addExpenseAction({ ...expenseData, friend: inviteMemberData, expenseDetail: expenseMembers }));
           setOpenSuccessModel(true);
         } catch (error) {
           console.error(error);
@@ -443,7 +449,7 @@ const AddExpense = ({ open, closeExpenseModel }) => {
                 </List>
               </Popover>
               <Typography component="p" style={{ marginTop: '8px', fontSize: '14px' }}>
-                {`($${splitAmount}/person)`}
+                {`($${splitAmount.toFixed(2)}/person)`}
               </Typography>
               <LocalizationProvider dateAdapter={AdapterDateFns}>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginTop: '18px' }} >

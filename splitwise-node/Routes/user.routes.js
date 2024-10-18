@@ -44,6 +44,9 @@ const router = express.Router();
  *           email:
  *            type: string
  *            description: The user's email address
+ *           registration_status:
+ *            type: string
+ *            example: confirmed, invited
  *      401:
  *         description: Unauthorized. Invalid or missing token.
  *      404:

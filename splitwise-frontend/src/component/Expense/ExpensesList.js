@@ -34,7 +34,7 @@ const AllExpenses = () => {
 
     useEffect(() => {
         const paidUserList =  allExpensesList.map((expense) => {
-            return expense.expenseDetail.filter(detail => detail.paidBy > 0).map(val => val?.userName || val?.tempUserName);
+            return expense.expenseDetail.filter(detail => detail.paidByUsers !== null).map(val => val?.paidByUsers?.username);
         })
         setPaidUser(paidUserList);
     }, [allExpensesList]);
@@ -51,7 +51,7 @@ const AllExpenses = () => {
                                     <AmountLabel variant="body1">₹{expense.amount}</AmountLabel>
                                     <Typography color="text.secondary" sx={{ display: 'flex', alignItems: 'center' }}>
                                         {
-                                            expense.expenseDetail.map(detail => <Avatar sx={{ width: '28px', height: '28px', fontSize: '16px', fontWeight: 600, ml: 0.5 }}>{detail.userName?.[0] || detail.tempUserName?.[0]}</Avatar>)
+                                            expense.expenseDetail.map(detail => detail?.owedByUser !== null ? <Avatar sx={{ width: '28px', height: '28px', fontSize: '16px', fontWeight: 600, ml: 0.5 }}>{detail.owedByUsers?.username?.[0].toLowerCase()}</Avatar> : <></>)
                                         }
                                     </Typography>
                                 </Box>
